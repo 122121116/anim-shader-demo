@@ -21,6 +21,11 @@ else()
     message(WARNING "GLFW not found in ${THIRDPARTY_DIR}/glfw")
 endif()
 
+# GLM
+set(GLM_DIR ${THIRDPARTY_DIR}/glm)
+if(EXISTS "${GLM_DIR}/CMakeLists.txt")
+    add_subdirectory(${GLM_DIR})
+endif()
 # Assimp
 set(ASSIMP_DIR ${THIRDPARTY_DIR}/assimp)
 if(EXISTS "${ASSIMP_DIR}/CMakeLists.txt")
@@ -70,6 +75,7 @@ include_directories(
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${THIRDPARTY_DIR}/glfw/include
+    ${GLM_DIR}
 )
 
 # Source files
@@ -85,6 +91,11 @@ if(TARGET glfw)
 endif()
 if(TARGET assimp)
     target_link_libraries(GraphicsHomework PRIVATE assimp)
+endif()
+if(TARGET glm)
+    target_link_libraries(GraphicsHomework PRIVATE glm)
+elseif(TARGET glm::glm)
+    target_link_libraries(GraphicsHomework PRIVATE glm::glm)
 endif()
 
 if(WIN32)
