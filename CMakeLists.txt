@@ -13,9 +13,6 @@ set(THIRDPARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
 # Check if GLFW directory exists, if so add it
 if(EXISTS "${THIRDPARTY_DIR}/glfw/CMakeLists.txt")
     # Disable unnecessary GLFW subprojects to allow pruning thirdparty folders
-    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
     add_subdirectory(${THIRDPARTY_DIR}/glfw)
 else()
     message(WARNING "GLFW not found in ${THIRDPARTY_DIR}/glfw")
@@ -26,17 +23,10 @@ set(GLM_DIR ${THIRDPARTY_DIR}/glm)
 if(EXISTS "${GLM_DIR}/CMakeLists.txt")
     add_subdirectory(${GLM_DIR})
 endif()
+
 # Assimp
 set(ASSIMP_DIR ${THIRDPARTY_DIR}/assimp)
 if(EXISTS "${ASSIMP_DIR}/CMakeLists.txt")
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
-    set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "" FORCE)
     add_subdirectory(${ASSIMP_DIR})
 else()
     message(WARNING "Assimp not found in ${ASSIMP_DIR}. You can add it under thirdparty/assimp or let CMake fetch it.")
@@ -46,14 +36,6 @@ else()
         GIT_REPOSITORY https://github.com/assimp/assimp.git
         GIT_TAG v5.3.1
     )
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
-    set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
-    set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(assimp)
 endif()
 
@@ -70,19 +52,24 @@ set(IMGUI_SOURCES
 )
 
 # Include directories
+if(EXISTS "${ASSIMP_DIR}/contrib/stb")
+    set(STB_INCLUDE_DIR "${ASSIMP_DIR}/contrib/stb")
+endif()
 include_directories(
     ${INCLUDE_DIR}
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${THIRDPARTY_DIR}/glfw/include
     ${GLM_DIR}
+    ${STB_INCLUDE_DIR}
 )
 
 # Source files
 file(GLOB_RECURSE SOURCES ${SRC_DIR}/*.cpp)
+file(GLOB_RECURSE C_SOURCES ${SRC_DIR}/*.c)
 
 # Executable
-add_executable(GraphicsHomework ${SOURCES} ${IMGUI_SOURCES})
+add_executable(GraphicsHomework ${C_SOURCES} ${SOURCES} ${IMGUI_SOURCES})
 
 # Link libraries
 # Note: glfw target is created by add_subdirectory(glfw)
