@@ -69,7 +69,7 @@ file(GLOB_RECURSE SOURCES ${SRC_DIR}/*.cpp)
 file(GLOB_RECURSE C_SOURCES ${SRC_DIR}/*.c)
 
 # Executable
-add_executable(GraphicsHomework ${C_SOURCES} ${SOURCES} ${IMGUI_SOURCES})
+add_executable(GraphicsHomework ${C_SOURCES} ${SOURCES} ${IMGUI_SOURCES} "src/widget/ui.cpp" "src/test/loadtest.cpp" "src/math/math.cpp" "src/graghics/compile_shaders.cpp" "resource/shader/vertex.cpp" "resource/shader/pixel.cpp")
 
 # Link libraries
 # Note: glfw target is created by add_subdirectory(glfw)
