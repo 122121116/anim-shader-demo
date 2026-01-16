@@ -69,7 +69,8 @@ file(GLOB_RECURSE SOURCES ${SRC_DIR}/*.cpp)
 file(GLOB_RECURSE C_SOURCES ${SRC_DIR}/*.c)
 
 # Executable
-add_executable(GraphicsHomework ${C_SOURCES} ${SOURCES} ${IMGUI_SOURCES} "src/widget/ui.cpp" "src/test/loadtest.cpp" "src/math/math.cpp" "src/graghics/compile_shaders.cpp" "resource/shader/vertex.cpp" "resource/shader/pixel.cpp")
+add_executable(GraphicsHomework ${C_SOURCES} ${SOURCES} ${IMGUI_SOURCES} )
+target_compile_definitions(GraphicsHomework PRIVATE PROJECT_MODEL_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resource/model")
 
 # Link libraries
 # Note: glfw target is created by add_subdirectory(glfw)
@@ -88,3 +89,7 @@ endif()
 if(WIN32)
     target_link_libraries(GraphicsHomework PRIVATE opengl32)
 endif()
+add_custom_command(TARGET GraphicsHomework POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:GraphicsHomework>/resource"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/resource" "$<TARGET_FILE_DIR:GraphicsHomework>/resource"
+)

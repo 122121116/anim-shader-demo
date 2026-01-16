@@ -22,6 +22,7 @@ public:
     size_t getAnimationCount() const;
     const aiAnimation* getAnimation(size_t index) const;
     const std::string& getPath() const;
+    const char* getError() const;
     static unsigned int defaultFlags();
 private:
     std::string path_;

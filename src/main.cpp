@@ -4,24 +4,26 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "assimp/Importer.hpp"
-#include "stb_image.h"
+int test_load_model();
 
 int main()
 {
-    // ========== 1. ³õÊ¼»¯ GLFW ==========
+    // ========== 1. ï¿½ï¿½Ê¼ï¿½ï¿½ GLFW ==========
     if (!glfwInit())
     {
         std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
 
-    // ÉèÖÃ OpenGL °æ±¾ºÍÅäÖÃÎÄ¼þ
+    // ï¿½ï¿½ï¿½ï¿½ OpenGL ï¿½æ±¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // ========== 2. ´´½¨ GLFW ´°¿Ú ==========
+    //ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
+    test_load_model();
+
+    // ========== 2. ï¿½ï¿½ï¿½ï¿½ GLFW ï¿½ï¿½ï¿½ï¿½ ==========
     GLFWwindow* window = glfwCreateWindow(1280, 720, "ImGui + GLFW + OpenGL3", nullptr, nullptr);
     if (!window)
     {
@@ -30,11 +32,11 @@ int main()
         return -1;
     }
 
-    // ========== 3. ÉèÖÃµ±Ç°ÉÏÏÂÎÄ ==========
+    // ========== 3. ï¿½ï¿½ï¿½Ãµï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ==========
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);  // ¿ªÆô´¹Ö±Í¬²½
+    glfwSwapInterval(1);  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±Í¬ï¿½ï¿½
 
-    // ========== 4. ³õÊ¼»¯ GLAD£¨±ØÐëÔÚ´´½¨´°¿Úºó£© ==========
+    // ========== 4. ï¿½ï¿½Ê¼ï¿½ï¿½ GLADï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úºï¿½ ==========
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cerr << "Failed to initialize GLAD" << std::endl;
@@ -43,21 +45,19 @@ int main()
         return -1;
     }
 
-    // ========== 5. ³õÊ¼»¯ ImGui ÉÏÏÂÎÄ ==========
+    // ========== 5. ï¿½ï¿½Ê¼ï¿½ï¿½ ImGui ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ==========
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
 
-    // ÉèÖÃ ImGui ÑùÊ½£¨¿ÉÑ¡£©
+    // ï¿½ï¿½ï¿½ï¿½ ImGui ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
     ImGui::StyleColorsDark();
 
-    // ÆôÓÃ¼üÅÌ/Êó±ê¿ØÖÆ
+    // ï¿½ï¿½ï¿½Ã¼ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Èç¹ûÐèÒªÓÎÏ·ÊÖ±úÖ§³Ö
-    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Èç¹ûÐèÒªÍ£¿¿¹¦ÄÜ
 
-    // ========== 6. ³õÊ¼»¯ ImGui Æ½Ì¨ºó¶Ë£¨GLFW£© ==========
+    // ========== 6. åˆå§‹åŒ– ImGui å¹³å°åŽç«¯ï¼ˆGLFWï¼‰ ==========
     if (!ImGui_ImplGlfw_InitForOpenGL(window, true))
     {
         std::cerr << "Failed to initialize ImGui GLFW backend" << std::endl;
@@ -67,7 +67,7 @@ int main()
         return -1;
     }
 
-    // ========== 7. ³õÊ¼»¯ ImGui äÖÈ¾ºó¶Ë£¨OpenGL3£© ==========
+    // ========== 7. åˆå§‹åŒ– ImGui æ¸²æŸ“åŽç«¯ï¼ˆOpenGL3ï¼‰ ==========
     const char* glsl_version = "#version 330";
     if (!ImGui_ImplOpenGL3_Init(glsl_version))
     {
@@ -79,23 +79,23 @@ int main()
         return -1;
     }
 
-    // ========== 8. ÉèÖÃÇå³ýÑÕÉ« ==========
+    // ========== 8. è®¾ç½®æ¸…é™¤é¢œè‰² ==========
     glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
 
-    // ========== Ö÷Ñ­»· ==========
+    // ========== ä¸»å¾ªçŽ¯ ==========
     while (!glfwWindowShouldClose(window))
     {
-        // ´¦Àí GLFW ÊÂ¼þ
+        // å¤„ç† GLFW äº‹ä»¶
         glfwPollEvents();
 
-        // ¿ªÊ¼ÐÂÖ¡£¨ImGui£©
+        // å¼€å§‹æ–°å¸§ï¼ˆImGuiï¼‰
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // ========== »æÖÆ ImGui ½çÃæ ==========
+        // ========== ç»˜åˆ¶ ImGui ç•Œé¢ ==========
         {
-            // 1. ÏÔÊ¾Ò»¸ö¼òµ¥µÄ´°¿Ú
+            // 1. æ˜¾ç¤ºä¸€ä¸ªç®€å•çš„çª—å£
             ImGui::Begin("Hello, ImGui!");
             ImGui::Text("This is a simple ImGui window.");
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
@@ -112,25 +112,25 @@ int main()
 
             ImGui::End();
 
-            // 2. ÏÔÊ¾ÁíÒ»¸ö´°¿ÚÊ¾Àý
+            // 2. æ˜¾ç¤ºå¦ä¸€ä¸ªçª—å£ç¤ºä¾‹
             ImGui::Begin("Another Window");
             ImGui::Text("You can create multiple windows.");
             ImGui::End();
         }
 
-        // ========== äÖÈ¾ ==========
-        // Çå³ý»º³åÇø
+        // ========== æ¸²æŸ“ ==========
+        // æ¸…é™¤ç¼“å†²åŒº
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // äÖÈ¾ ImGui
+        // æ¸²æŸ“ ImGui
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        // ½»»»»º³åÇø
+        // äº¤æ¢ç¼“å†²åŒº
         glfwSwapBuffers(window);
     }
 
-    // ========== ÇåÀí×ÊÔ´£¨°´´´½¨µÄ·´Ðò£© ==========
+    // ========== æ¸…ç†èµ„æºï¼ˆæŒ‰åˆ›å»ºçš„ååºï¼‰ ==========
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -140,6 +140,5 @@ int main()
 
     return 0;
 }
-
 
 

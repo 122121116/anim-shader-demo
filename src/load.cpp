@@ -70,6 +70,9 @@ const aiAnimation* Load::getAnimation(size_t index) const {
 const std::string& Load::getPath() const {
     return path_;
 }
+const char* Load::getError() const {
+    return importer_.GetErrorString();
+}
 unsigned int Load::defaultFlags() {
     return aiProcess_Triangulate |
            aiProcess_GenSmoothNormals |
