@@ -1,31 +1,29 @@
 #pragma once
 #include <string>
+#include <vector>
+#include "attribute.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 class Load {
 public:
     Load();
-    bool loadFromFile(const std::string& path, unsigned int flags = Load::defaultFlags());
-    const aiScene* getScene() const;
-    const aiNode* getRootNode() const;
-    size_t getMeshCount() const;
-    const aiMesh* getMesh(size_t index) const;
-    size_t getMaterialCount() const;
-    const aiMaterial* getMaterial(size_t index) const;
-    size_t getEmbeddedTextureCount() const;
-    const aiTexture* getEmbeddedTexture(size_t index) const;
-    size_t getLightCount() const;
-    const aiLight* getLight(size_t index) const;
-    size_t getCameraCount() const;
-    const aiCamera* getCamera(size_t index) const;
-    size_t getAnimationCount() const;
-    const aiAnimation* getAnimation(size_t index) const;
+    bool loadFromFile(const std::string& path);
+    const std::vector<Vertex>& vertices() const;
+    const std::vector<MaterialDesc>& materials() const;
+    const std::vector<TextureDesc>& textures() const;
     const std::string& getPath() const;
     const char* getError() const;
-    static unsigned int defaultFlags();
 private:
+    void clear();
+    void extractVertices(const aiScene* scene);
+    void extractMaterials(const aiScene* scene);
+    void extractTextures(const aiScene* scene, const std::string& baseDir);
     std::string path_;
-    const aiScene* scene_;
+    std::vector<Vertex> vertices_;
+    std::vector<MaterialDesc> materials_;
+    std::vector<TextureDesc> textures_;
     Assimp::Importer importer_;
+    const aiScene* scene_;
+    std::string error_;
 };
