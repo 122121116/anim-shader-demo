@@ -1,32 +1,38 @@
 #version 330 core
-out vec4 FragColor;
 
-in vec3 FragPos;
-in vec3 Normal;
+// 顶点属性输入 (严格匹配 buffer.cpp location 设置)
+layout (location = 0) in vec3 aPos;    // 顶点局部坐标
+layout (location = 1) in vec3 aNormal; // 顶点法线，用于描边位移与光照计算
+layout (location = 2) in vec2 aUV0;    // 第一套 UV 坐标，用于纹理采样
 
-uniform vec3 lightPos;   // 灯光位置
-uniform vec3 viewPos;    // 相机（观察者）位置
-uniform vec3 lightColor; // 灯光颜色
-uniform vec3 objectColor;// 物体颜色
+// 传往片元着色器的变量
+out vec3 FragPos;  
+out vec3 Normal;   
+out vec2 TexCoord; 
 
-void main() {
-    // 1. 环境光 (Ambient) - 保证没光的地方不是纯黑
-    float ambientStrength = 0.1;
-    vec3 ambient = ambientStrength * lightColor;
+// 坐标变换矩阵 (由外部程序传入)
+uniform mat4 model;      
+uniform mat4 view;       
+uniform mat4 projection; 
 
-    // 2. 漫反射 (Diffuse) - 模拟光直接照射的效果
-    vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(lightPos - FragPos);
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * lightColor;
+// 描边控制参数
+uniform bool isOutline;     // 是否开启描边渲染模式
+uniform float outlineWidth; // 描边粗细（顶点沿法线方向外扩的距离）
 
-    // 3. 镜面反射 (Specular) - 模拟高光
-    float specularStrength = 0.5;
-    vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = specularStrength * spec * lightColor;
+void main()
+{
+    vec3 pos = aPos;
+    
+    // 【功能：描边位移】
+    // 若处于描边模式，顶点坐标沿法线方向偏移
+    if (isOutline) {
+        pos += aNormal * outlineWidth;
+    }
 
-    vec3 result = (ambient + diffuse + specular) * objectColor;
-    FragColor = vec4(result, 1.0);
+    // 计算世界空间位置与法线
+    FragPos = vec3(model * vec4(pos, 1.0));
+    Normal = mat3(transpose(inverse(model))) * aNormal;  
+    TexCoord = aUV0; 
+    
+    gl_Position = projection * view * vec4(FragPos, 1.0);
 }
