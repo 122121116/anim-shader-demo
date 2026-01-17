@@ -1,4 +1,4 @@
-#include "load_shader.h"
+#include "shader.h"
 #include <fstream>
 #include <sstream>
 Shader::Shader() : program_(0) {}
@@ -76,3 +76,16 @@ void Shader::use() const {
 GLuint Shader::program() const { return program_; }
 const std::string& Shader::error() const { return error_; }
 GLint Shader::uniform(const char* name) const { return glGetUniformLocation(program_, name); }
+
+void Shader::setBool(const std::string &name, bool value) const {
+    GLint loc = glGetUniformLocation(program_, name.c_str());
+    if (loc != -1) glUniform1i(loc, value ? 1 : 0);
+}
+void Shader::setInt(const std::string &name, int value) const {
+    GLint loc = glGetUniformLocation(program_, name.c_str());
+    if (loc != -1) glUniform1i(loc, value);
+}
+void Shader::setFloat(const std::string &name, float value) const {
+    GLint loc = glGetUniformLocation(program_, name.c_str());
+    if (loc != -1) glUniform1f(loc, value);
+}

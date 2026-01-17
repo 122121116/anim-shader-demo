@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "attribute.h"
+#include "mesh.h"
 
 class Cube {
 public:
