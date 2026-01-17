@@ -10,7 +10,6 @@ int test_load_model() {
     }
     std::cout << "Vertices: " << loader.vertices().size() << "\n";
     std::cout << "Materials: " << loader.materials().size() << "\n";
-    std::cout << "Textures: " << loader.textures().size() << "\n";
     std::cout << "Textures GL: " << loader.texturesGL().size() << "\n";
 
     return 0;

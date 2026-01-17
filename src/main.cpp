@@ -9,20 +9,21 @@ int test_buffer_fill();
 
 int main()
 {
+    test_buffer_fill();
+    test_load_model();
     // ========== 1. ��ʼ�� GLFW ==========
     if (!glfwInit())
     {
         std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
-
     // ���� OpenGL �汾�������ļ�
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     //���Լ���
-    test_load_model();
+    
 
     // ========== 2. ���� GLFW ���� ==========
     GLFWwindow* window = glfwCreateWindow(1280, 720, "ImGui + GLFW + OpenGL3", nullptr, nullptr);

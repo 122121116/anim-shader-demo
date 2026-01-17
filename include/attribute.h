@@ -15,14 +15,7 @@ struct TextureDesc {
     std::vector<unsigned char> image_bytes;
     int width;
     int height;
-    std::string mime_type;
-    int wrap_s;
-    int wrap_t;
-    int min_filter;
-    int mag_filter;
-    int anisotropy;
     bool srgb;
-    bool flip_y;
     bool generate_mipmaps;
 };
 
