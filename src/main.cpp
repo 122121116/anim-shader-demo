@@ -5,6 +5,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 int test_load_model();
+int test_buffer_fill();
 
 int main()
 {

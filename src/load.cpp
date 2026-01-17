@@ -4,6 +4,7 @@
 #include <cstring>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <glad/glad.h>
 Load::Load() : scene_(nullptr) {}
 bool Load::loadFromFile(const std::string& path) {
     path_ = path;
@@ -17,18 +18,20 @@ bool Load::loadFromFile(const std::string& path) {
     extractVertices(scene_);
     extractMaterials(scene_);
     std::string baseDir = std::filesystem::path(path).parent_path().string();
-    extractTextures(scene_, baseDir);
+    textures_gl_ = extractTextures(scene_, baseDir);
     return true;
 }
 const std::vector<Vertex>& Load::vertices() const { return vertices_; }
 const std::vector<MaterialDesc>& Load::materials() const { return materials_; }
 const std::vector<TextureDesc>& Load::textures() const { return textures_; }
+const std::vector<GLuint>& Load::texturesGL() const { return textures_gl_; }
 const std::string& Load::getPath() const { return path_; }
 const char* Load::getError() const { return error_.empty() ? nullptr : error_.c_str(); }
 void Load::clear() {
     vertices_.clear();
     materials_.clear();
     textures_.clear();
+    textures_gl_.clear();
     error_.clear();
 }
 void Load::extractVertices(const aiScene* scene) {
@@ -71,7 +74,21 @@ static std::string guessMime(const aiTexture* t) {
     if (!hint.empty()) return std::string("image/") + hint;
     return std::string();
 }
-void Load::extractTextures(const aiScene* scene, const std::string& baseDir) {
+static GLuint makeGLTextureRGBA8(const unsigned char* pixels, int w, int h, bool srgb, bool mipmaps) {
+    GLuint tex = 0;
+    glCreateTextures(GL_TEXTURE_2D, 1, &tex);
+    GLint internalFormat = srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+    glTextureStorage2D(tex, 1, internalFormat, w, h);
+    glTextureSubImage2D(tex, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glTextureParameteri(tex, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTextureParameteri(tex, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTextureParameteri(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTextureParameteri(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (mipmaps) glGenerateTextureMipmap(tex);
+    return tex;
+}
+std::vector<GLuint> Load::extractTextures(const aiScene* scene, const std::string& baseDir) {
+    std::vector<GLuint> glTex;
     if (!scene) return;
     for (unsigned int i = 0; i < scene->mNumTextures; ++i) {
         const aiTexture* t = scene->mTextures[i];
@@ -80,21 +97,41 @@ void Load::extractTextures(const aiScene* scene, const std::string& baseDir) {
         td.width = static_cast<int>(t->mWidth);
         td.height = static_cast<int>(t->mHeight);
         td.mime_type = guessMime(t);
-        td.wrap_s = 1000;
-        td.wrap_t = 1000;
-        td.min_filter = 1008;
-        td.mag_filter = 1006;
+        td.wrap_s = 0;
+        td.wrap_t = 0;
+        td.min_filter = 0;
+        td.mag_filter = 0;
         td.anisotropy = 1;
         td.srgb = true;
         td.flip_y = false;
         td.generate_mipmaps = true;
         if (t->mHeight == 0) {
-            td.image_bytes.resize(t->mWidth);
-            std::memcpy(td.image_bytes.data(), t->pcData, t->mWidth);
+            const unsigned char* mem = reinterpret_cast<const unsigned char*>(t->pcData);
+            int w=0,h=0,channels=0;
+            stbi_set_flip_vertically_on_load(td.flip_y);
+            unsigned char* decoded = stbi_load_from_memory(mem, static_cast<int>(t->mWidth), &w, &h, &channels, 4);
+            if (decoded) {
+                td.width = w; td.height = h;
+                GLuint g = makeGLTextureRGBA8(decoded, w, h, td.srgb, td.generate_mipmaps);
+                glTex.push_back(g);
+                td.image_bytes.assign(decoded, decoded + static_cast<size_t>(w*h*4));
+                stbi_image_free(decoded);
+            }
         } else {
             size_t byteCount = static_cast<size_t>(t->mWidth) * static_cast<size_t>(t->mHeight) * sizeof(aiTexel);
             td.image_bytes.resize(byteCount);
             std::memcpy(td.image_bytes.data(), t->pcData, byteCount);
+            GLuint tex = 0;
+            glCreateTextures(GL_TEXTURE_2D, 1, &tex);
+            GLint internalFormat = td.srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+            glTextureStorage2D(tex, 1, internalFormat, td.width, td.height);
+            glTextureSubImage2D(tex, 0, 0, 0, td.width, td.height, GL_BGRA, GL_UNSIGNED_BYTE, td.image_bytes.data());
+            glTextureParameteri(tex, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTextureParameteri(tex, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTextureParameteri(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTextureParameteri(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            if (td.generate_mipmaps) glGenerateTextureMipmap(tex);
+            glTex.push_back(tex);
         }
         textures_.push_back(std::move(td));
     }
@@ -106,6 +143,7 @@ void Load::extractTextures(const aiScene* scene, const std::string& baseDir) {
             if (!p.empty() && p[0] != '*') {
                 std::filesystem::path full = std::filesystem::path(baseDir) / p;
                 int w=0,h=0,ch=0;
+                stbi_set_flip_vertically_on_load(false);
                 unsigned char* data = stbi_load(full.string().c_str(), &w, &h, &ch, 4);
                 if (data) {
                     TextureDesc td{};
@@ -113,19 +151,22 @@ void Load::extractTextures(const aiScene* scene, const std::string& baseDir) {
                     td.width = w;
                     td.height = h;
                     td.mime_type = "image/unknown";
-                    td.wrap_s = 1000;
-                    td.wrap_t = 1000;
-                    td.min_filter = 1008;
-                    td.mag_filter = 1006;
+                    td.wrap_s = 0;
+                    td.wrap_t = 0;
+                    td.min_filter = 0;
+                    td.mag_filter = 0;
                     td.anisotropy = 1;
                     td.srgb = true;
                     td.flip_y = false;
                     td.generate_mipmaps = true;
                     td.image_bytes.assign(data, data + static_cast<size_t>(w*h*4));
+                    GLuint g = makeGLTextureRGBA8(data, w, h, td.srgb, td.generate_mipmaps);
+                    glTex.push_back(g);
                     stbi_image_free(data);
                     textures_.push_back(std::move(td));
                 }
             }
         }
     }
+    return glTex;
 }
