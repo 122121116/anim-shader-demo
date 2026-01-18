@@ -46,8 +46,8 @@ void ui_update_input(UIState& state, GLFWwindow* window, float dt) {
     float dy = float(state.last_y - y);
     state.last_x = x;
     state.last_y = y;
-    state.camera_yaw -= dx * state.camera_sensitivity;
-    state.camera_pitch -= dy * state.camera_sensitivity;
+    state.camera_yaw += dx * state.camera_sensitivity;
+    state.camera_pitch += dy * state.camera_sensitivity;
 
     if (state.camera_pitch > 360.0f) state.camera_pitch = 360.0f;
     if (state.camera_pitch < -360.0f) state.camera_pitch = -360.0f;

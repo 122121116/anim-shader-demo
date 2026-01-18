@@ -22,6 +22,13 @@ class Mesh {
         std::vector<Texture> textures;
         /*  函数  */
         Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
+        ~Mesh();
+        Mesh(Mesh&& other) noexcept;
+        Mesh& operator=(Mesh&& other) noexcept;
+
+        Mesh(const Mesh&) = delete;
+        Mesh& operator=(const Mesh&) = delete;
+
         void Draw(Shader &shader);
     private:
         /*  渲染数据  */

@@ -1,4 +1,4 @@
-﻿#include "mesh.h"
+#include "mesh.h"
 #include <iostream>
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
@@ -9,6 +9,46 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 
     setupMesh();
 }
+
+Mesh::~Mesh() {
+    if (VAO) glDeleteVertexArrays(1, &VAO);
+    if (VBO) glDeleteBuffers(1, &VBO);
+    if (EBO) glDeleteBuffers(1, &EBO);
+}
+
+Mesh::Mesh(Mesh&& other) noexcept 
+    : vertices(std::move(other.vertices))
+    , indices(std::move(other.indices))
+    , textures(std::move(other.textures))
+    , VAO(other.VAO)
+    , VBO(other.VBO)
+    , EBO(other.EBO)
+{
+    other.VAO = 0;
+    other.VBO = 0;
+    other.EBO = 0;
+}
+
+Mesh& Mesh::operator=(Mesh&& other) noexcept {
+    if (this != &other) {
+        if (VAO) glDeleteVertexArrays(1, &VAO);
+        if (VBO) glDeleteBuffers(1, &VBO);
+        if (EBO) glDeleteBuffers(1, &EBO);
+
+        vertices = std::move(other.vertices);
+        indices = std::move(other.indices);
+        textures = std::move(other.textures);
+        VAO = other.VAO;
+        VBO = other.VBO;
+        EBO = other.EBO;
+
+        other.VAO = 0;
+        other.VBO = 0;
+        other.EBO = 0;
+    }
+    return *this;
+}
+
 void Mesh::setupMesh()
 {
     glGenVertexArrays(1, &VAO);

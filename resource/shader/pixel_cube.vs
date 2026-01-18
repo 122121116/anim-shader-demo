@@ -8,8 +8,8 @@ out vec4 FragColor;
 uniform vec3 lightPos;
 uniform vec3 lightColor;
 uniform vec3 objectColor;
-//uniform samplerCube shadowMap;
-//uniform float farPlane;
+uniform samplerCube shadowMap;
+uniform float farPlane;
 
 void main() {
     vec3 norm = normalize(Normal);
@@ -19,18 +19,38 @@ void main() {
     
     float diff = max(dot(norm, L), 0.0);
 
-    vec3 ambient = 0.2 * lightColor * objectColor;
+    vec3 ambient = 0.3 * lightColor * objectColor;
 
-    //float shadow = 0.0;
-    //float bias = 0.05;
-    //float closestDepth = texture(shadowMap, L).r * farPlane;
-    //if (distanceToLight - bias > closestDepth) {
-    //    shadow = 1.0;
-    //}
+    float shadow = 0.0;
+    float bias = 0.05;
+    int samples = 20;
+    float viewDistance = length(lightPos - FragPos);
+    float diskRadius = 0.01;
+    vec3 fragToLight = FragPos - lightPos;
+    float currentDepth = length(fragToLight);
+    vec3 normFragToLight = normalize(fragToLight);
+    
+    vec3 sampleOffsetDirections[20] = vec3[]
+    (
+       vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
+       vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+       vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+       vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+       vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+    );
+
+    for(int i = 0; i < samples; ++i)
+    {
+        float closestDepth = texture(shadowMap, normFragToLight + sampleOffsetDirections[i] * diskRadius).r;
+        closestDepth *= farPlane;
+        if(currentDepth - bias > closestDepth)
+            shadow += 1.0;
+    }
+    shadow /= float(samples);
 
     float lighting = diff;
 
-    vec3 result = ambient + lighting * lightColor * objectColor;
+    vec3 result = ambient + 0.7 * (1.0 - shadow) * lighting * lightColor * objectColor;
     
     FragColor = vec4(result, 1.0);
 }
