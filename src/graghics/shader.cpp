@@ -13,6 +13,14 @@ bool Shader::readFile(const std::string& path, std::string& out) {
     std::ostringstream ss;
     ss << f.rdbuf();
     out = ss.str();
+    if (out.size() >= 3) {
+        unsigned char b0 = static_cast<unsigned char>(out[0]);
+        unsigned char b1 = static_cast<unsigned char>(out[1]);
+        unsigned char b2 = static_cast<unsigned char>(out[2]);
+        if (b0 == 0xEF && b1 == 0xBB && b2 == 0xBF) {
+            out.erase(0, 3);
+        }
+    }
     return true;
 }
 GLuint Shader::compileStage(GLenum type, const std::string& src, std::string& outError) {

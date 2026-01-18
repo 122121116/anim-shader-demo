@@ -90,6 +90,10 @@ int main()
     glfwGetFramebufferSize(window, &init_w, &init_h);
     ui_init(uistate, init_w, init_h);
     light.setupShadowCube(1024, 1.0f, 50.0f);
+    // 预创建一个单位立方体，用于后续复用渲染
+    // 颜色参数这里给默认值，实际渲染时通过 uniform objectColor 控制
+    Cube unitCube(1.0f, 1.0f, 1.0f, glm::vec3(1.0f));
+
     std::vector<Mesh> extraMeshes;
     double lastTime = glfwGetTime();
 
@@ -107,48 +111,48 @@ int main()
 
         light.setPoint(uistate.light_pos, uistate.light_color);
 
-        float nearPlane = 1.0f;
-        float farPlane = light.farPlane();
-        glm::vec3 lightPos = light.position();
-        float aspect = 1.0f;
-        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, nearPlane, farPlane);
-        glm::mat4 shadowTransforms[6];
-        shadowTransforms[0] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-        shadowTransforms[1] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-        shadowTransforms[2] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        shadowTransforms[3] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
-        shadowTransforms[4] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-        shadowTransforms[5] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        //float nearPlane = 1.0f;
+        //float farPlane = light.farPlane();
+        //glm::vec3 lightPos = light.position();
+        //float aspect = 1.0f;
+        //glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, nearPlane, farPlane);
+        //glm::mat4 shadowTransforms[6];
+        //shadowTransforms[0] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        //shadowTransforms[1] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        //shadowTransforms[2] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        //shadowTransforms[3] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+        //shadowTransforms[4] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        //shadowTransforms[5] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
 
-        depthShader.use();
-        depthShader.setVec3("lightPos", lightPos);
-        depthShader.setFloat("farPlane", farPlane);
+        //depthShader.use();
+        //depthShader.setVec3("lightPos", lightPos);
+        //depthShader.setFloat("farPlane", farPlane);
 
-        light.beginDepthPass();
-        for (int face = 0; face < 6; ++face) {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, light.depthCubeTexture(), 0);
-            glClear(GL_DEPTH_BUFFER_BIT);
+        //light.beginDepthPass();
+        //for (int face = 0; face < 6; ++face) {
+        //    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, light.depthCubeTexture(), 0);
+        //    glClear(GL_DEPTH_BUFFER_BIT);
 
-            depthShader.setMat4("lightSpaceMatrix", shadowTransforms[face]);
-            depthShader.setMat4("model", uistate.model);
-            sceneModel.Draw(depthShader);
-            for (auto& m : extraMeshes) m.Draw(depthShader);
-            if (!uistate.cubes.empty()) {
-                for (const auto& cfg : uistate.cubes) {
-                    if (!cfg.visible) continue;
-                    glm::mat4 rx = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.x), glm::vec3(1.0f, 0.0f, 0.0f));
-                    glm::mat4 ry = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.y), glm::vec3(0.0f, 1.0f, 0.0f));
-                    glm::mat4 rz = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.z), glm::vec3(0.0f, 0.0f, 1.0f));
-                    glm::mat4 t = glm::translate(glm::mat4(1.0f), cfg.pos);
-                    glm::mat4 s = glm::scale(glm::mat4(1.0f), glm::vec3(cfg.scale));
-                    glm::mat4 modelcube = t * rz * ry * rx * s;
-                    depthShader.setMat4("model", modelcube);
-                    Cube c(cfg.length, cfg.width, cfg.height, cfg.color);
-                    c.Draw(depthShader);
-                }
-            }
-        }
-        light.endDepthPass();
+        //    depthShader.setMat4("lightSpaceMatrix", shadowTransforms[face]);
+        //    depthShader.setMat4("model", uistate.model);
+        //    sceneModel.Draw(depthShader);
+        //    for (auto& m : extraMeshes) m.Draw(depthShader);
+        //    if (!uistate.cubes.empty()) {
+        //        for (const auto& cfg : uistate.cubes) {
+        //            if (!cfg.visible) continue;
+        //            glm::mat4 rx = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        //            glm::mat4 ry = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.y), glm::vec3(0.0f, 1.0f, 0.0f));
+        //            glm::mat4 rz = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.z), glm::vec3(0.0f, 0.0f, 1.0f));
+        //            glm::mat4 t = glm::translate(glm::mat4(1.0f), cfg.pos);
+        //            glm::mat4 s = glm::scale(glm::mat4(1.0f), glm::vec3(cfg.scale));
+        //            glm::mat4 modelcube = t * rz * ry * rx * s;
+        //            depthShader.setMat4("model", modelcube);
+        //            Cube c(cfg.length, cfg.width, cfg.height, cfg.color);
+        //            c.Draw(depthShader);
+        //        }
+        //    }
+        //}
+        //light.endDepthPass();
 
         glViewport(0, 0, w, h);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -166,11 +170,11 @@ int main()
         shader.setVec3("lightColor", light.color());
         shader.setFloat("outlineWidth", uistate.outlinewidth);
         shader.setInt("texture1", 0);
-        shader.setInt("shadowMap", 1);
-        shader.setFloat("farPlane", farPlane);
+        //shader.setInt("shadowMap", 1);
+        //shader.setFloat("farPlane", farPlane);
 
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, light.depthCubeTexture());
+        //glActiveTexture(GL_TEXTURE1);
+        //glBindTexture(GL_TEXTURE_CUBE_MAP, light.depthCubeTexture());
 
         sceneModel.Draw(shader);
         for (auto& m : extraMeshes) m.Draw(shader);
@@ -184,10 +188,10 @@ int main()
             if (cubeProj >= 0) glUniformMatrix4fv(cubeProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
             cubeShader.setVec3("lightPos", light.position());
             cubeShader.setVec3("lightColor", light.color());
-            cubeShader.setInt("shadowMap", 1);
-            cubeShader.setFloat("farPlane", farPlane);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, light.depthCubeTexture());
+            //cubeShader.setInt("shadowMap", 1);
+            //cubeShader.setFloat("farPlane", farPlane);
+            //glActiveTexture(GL_TEXTURE1);
+            //glBindTexture(GL_TEXTURE_CUBE_MAP, light.depthCubeTexture());
             for (const auto& cfg : uistate.cubes) {
                 if (!cfg.visible) continue;
                 glm::mat4 rx = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.x), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -195,12 +199,22 @@ int main()
                 glm::mat4 rz = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.z), glm::vec3(0.0f, 0.0f, 1.0f));
                 glm::mat4 t = glm::translate(glm::mat4(1.0f), cfg.pos);
                 glm::mat4 s = glm::scale(glm::mat4(1.0f), glm::vec3(cfg.scale));
-                glm::mat4 modelcube = t * rz * ry * rx * s;
+                // 应用长宽高的缩放（因为现在使用单位立方体）
+                glm::mat4 sizeScale = glm::scale(glm::mat4(1.0f), glm::vec3(cfg.length, cfg.width, cfg.height));
+                glm::mat4 modelcube = t * rz * ry * rx * s * sizeScale;
+                
                 if (cubeModel >= 0) glUniformMatrix4fv(cubeModel, 1, GL_FALSE, glm::value_ptr(modelcube));
-                Cube c(cfg.length, cfg.width, cfg.height, cfg.color);
-                c.Draw(cubeShader);
+                
+                // 设置颜色 Uniform
+                cubeShader.setVec3("objectColor", cfg.color);
+                
+                // 使用复用的单位立方体进行绘制
+                unitCube.Draw(cubeShader);
             }
         }
+
+        // 显式解绑 VAO，避免干扰 ImGui
+        glBindVertexArray(0);
 
         // 开始 UI 帧
         ImGui_ImplOpenGL3_NewFrame();
@@ -224,5 +238,3 @@ int main()
     glfwTerminate();
     return 0;
 }
-
-

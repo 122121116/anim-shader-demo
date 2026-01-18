@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <vector>
 #include <glad/glad.h>
 #include <string>
@@ -14,6 +14,12 @@ struct VertexCube {
 class Cube {
 public:
     Cube(float length, float width, float height, glm::vec3 color);
+    ~Cube();
+
+    // 禁止拷贝构造和赋值操作，防止 VAO/VBO 双重释放
+    Cube(const Cube&) = delete;
+    Cube& operator=(const Cube&) = delete;
+
     std::vector<VertexCube> vertices_;
     std::vector<unsigned int> indices_;
 

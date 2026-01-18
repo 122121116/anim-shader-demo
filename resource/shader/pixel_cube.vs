@@ -7,8 +7,9 @@ out vec4 FragColor;
 
 uniform vec3 lightPos;
 uniform vec3 lightColor;
-uniform samplerCube shadowMap;
-uniform float farPlane;
+uniform vec3 objectColor;
+//uniform samplerCube shadowMap;
+//uniform float farPlane;
 
 void main() {
     vec3 norm = normalize(Normal);
@@ -18,18 +19,18 @@ void main() {
     
     float diff = max(dot(norm, L), 0.0);
 
-    vec3 ambient = 0.2 * lightColor * CubeColor;
+    vec3 ambient = 0.2 * lightColor * objectColor;
 
-    float shadow = 0.0;
-    float bias = 0.05;
-    float closestDepth = texture(shadowMap, L).r * farPlane;
-    if (distanceToLight - bias > closestDepth) {
-        shadow = 1.0;
-    }
+    //float shadow = 0.0;
+    //float bias = 0.05;
+    //float closestDepth = texture(shadowMap, L).r * farPlane;
+    //if (distanceToLight - bias > closestDepth) {
+    //    shadow = 1.0;
+    //}
 
-    float lighting = (1.0 - shadow) * diff;
+    float lighting = diff;
 
-    vec3 result = ambient + lighting * lightColor * CubeColor;
+    vec3 result = ambient + lighting * lightColor * objectColor;
     
     FragColor = vec4(result, 1.0);
 }

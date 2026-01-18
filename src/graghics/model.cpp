@@ -1,4 +1,4 @@
-#include "model.h"
+﻿#include "model.h"
 #include "glad/glad.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -155,4 +155,3 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, const aiScene*
     }
     return out;
 }
-

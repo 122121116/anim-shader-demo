@@ -9,8 +9,8 @@ out vec4 FragColor;
 uniform sampler2D texture1;
 uniform vec3 lightPos;
 uniform vec3 lightColor;
-uniform samplerCube shadowMap;
-uniform float farPlane;
+//uniform samplerCube shadowMap;
+//uniform float farPlane;
 
 void main() {
     if (vIsOutline > 0.5) {
@@ -27,14 +27,14 @@ void main() {
     float diff = max(dot(norm, L), 0.0);
     vec3 ambient = 0.2 * lightColor * texColor.rgb;
 
-    float shadow = 0.0;
-    float bias = 0.05;
-    float closestDepth = texture(shadowMap, L).r * farPlane;
-    if (distanceToLight - bias > closestDepth) {
-        shadow = 1.0;
-    }
+    //float shadow = 0.0;
+    //float bias = 0.05;
+    //float closestDepth = texture(shadowMap, L).r * farPlane;
+    //if (distanceToLight - bias > closestDepth) {
+    //    shadow = 1.0;
+    //}
 
-    float lighting = (1.0 - shadow) * diff;
+    float lighting = diff;
     vec3 result = ambient + lighting * lightColor * texColor.rgb;
     
     FragColor = vec4(result, texColor.a);

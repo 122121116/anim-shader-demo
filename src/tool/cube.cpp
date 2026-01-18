@@ -4,6 +4,12 @@ Cube::Cube(float length, float width, float height, glm::vec3 color) {
     build(length, width, height, color);
 }
 
+Cube::~Cube() {
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+}
+
 void Cube::build(float length, float width, float height, glm::vec3 color) {
     // 定义立方体的8个顶点
     vertices_ = {
