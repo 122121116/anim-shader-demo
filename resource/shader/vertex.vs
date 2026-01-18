@@ -15,31 +15,31 @@ out vec2 TexCoords;
 out float vIsOutline;
 
 void main() {
-    // ¼ÆËãÊÀ½ç¿Õ¼äÎ»ÖÃºÍ·¨Ïß
+    // è®¡ç®—ä¸–ç•Œç©ºé—´ä½ç½®å’Œæ³•çº¿
     vec4 worldPos = model * vec4(aPos, 1.0);
     mat3 normalMatrix = transpose(inverse(mat3(model)));
     vec3 worldNormal = normalize(normalMatrix * aNormal);
     
-    // ÊÓÏß·½Ïò£¨ÊÀ½ç¿Õ¼ä£©
+    // è§†çº¿æ–¹å‘ï¼ˆä¸–ç•Œç©ºé—´ï¼‰
     vec3 viewDir = normalize(viewPos - worldPos.xyz);
     
-    // ÅĞ¶ÏÊÇ·ñÎª±³Ãæ£¨ÅòÕÍ²¿·Ö£©
+    // åˆ¤æ–­æ˜¯å¦ä¸ºèƒŒé¢ï¼ˆè†¨èƒ€éƒ¨åˆ†ï¼‰
     float ndotv = dot(worldNormal, viewDir);
     
     vec4 finalPos = worldPos;
     vIsOutline = 0.0;
     
     if (ndotv > 0.0) {
-        // Ö»ÒÆ¶¯±³Ãæ¶¥µã£¬·½ÏòÑØ×Å·¨Ïß
+        // åªç§»åŠ¨èƒŒé¢é¡¶ç‚¹ï¼Œæ–¹å‘æ²¿ç€æ³•çº¿
         finalPos.xyz += worldNormal * outlineWidth;
         vIsOutline = 1.0;
     }
     
-    // Êä³öµ½Æ¬¶Î×ÅÉ«Æ÷
+    // è¾“å‡ºåˆ°ç‰‡æ®µç€è‰²å™¨
     FragPos = finalPos.xyz;
     Normal = worldNormal;
     TexCoords = aTexCoords;
     
-    // ×ª»»µ½²Ã¼ô¿Õ¼ä
+    // è½¬æ¢åˆ°è£å‰ªç©ºé—´
     gl_Position = projection * view * finalPos;
 }

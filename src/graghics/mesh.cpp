@@ -37,7 +37,7 @@ void Mesh::setupMesh()
     glBindVertexArray(0);
 }  
 void Mesh::Draw(Shader &shader) 
-{
+{   
     bool hasTex = false;
     if (!textures.empty()) {
         glActiveTexture(GL_TEXTURE0);

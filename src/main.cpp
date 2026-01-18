@@ -59,15 +59,24 @@ int main()
         return -1;
     }
     Shader shader;
+    Shader cubeShader;
     if (!shader.compileFromFiles("resource/shader/vertex.vs", "resource/shader/pixel.vs")) {
         std::cerr << "Shader error: " << shader.error() << std::endl;
         glfwDestroyWindow(window);
         glfwTerminate();
         return -1;
     }
+    if (!cubeShader.compileFromFiles("resource/shader/vertex_cube.vs", "resource/shader/pixel_cube.vs")) {
+        std::cerr << "Shader error: " << cubeShader.error() << std::endl;
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return -1;
+    }
 
     Model sceneModel("resource/model/mi.glb");
+
     UIState uistate;
+
     int init_w = 0, init_h = 0;
     glfwGetFramebufferSize(window, &init_w, &init_h);
     ui_init(uistate, init_w, init_h);
@@ -89,25 +98,33 @@ int main()
         GLint locModel = shader.uniform("model");
         GLint locView = shader.uniform("view");
         GLint locProj = shader.uniform("projection");
+        GLint cubeModel = cubeShader.uniform("model");
+        GLint cubeView = cubeShader.uniform("view");
+        GLint cubeProj = cubeShader.uniform("projection");
+
+        if (cubeModel>=0) glUniformMatrix4fv(cubeModel, 1, GL_FALSE, glm::value_ptr(uistate.model));
+        if (cubeView>=0) glUniformMatrix4fv(cubeView, 1, GL_FALSE, glm::value_ptr(uistate.view));
+        if (cubeProj>=0) glUniformMatrix4fv(cubeProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
+        if (locModel>=0) glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(uistate.modelcube));
+        if (locView>=0) glUniformMatrix4fv(locView, 1, GL_FALSE, glm::value_ptr(uistate.view));
+        if (locProj>=0) glUniformMatrix4fv(locProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
 
         shader.setVec3("viewPos", uistate.view_pos);
         shader.setVec3("lightDir", uistate.light_pos);
         shader.setVec3("lightColor", uistate.light_color);
         shader.setFloat("outlineWidth", uistate.outlinewidth);
 
-        if (locModel>=0) glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(uistate.model));
-        if (locView>=0) glUniformMatrix4fv(locView, 1, GL_FALSE, glm::value_ptr(uistate.view));
-        if (locProj>=0) glUniformMatrix4fv(locProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
+        cubeShader.setVec3("lightDir", uistate.light_pos);
+        cubeShader.setVec3("lightColor", uistate.light_color);
 
         shader.use();
         shader.setInt("texture1", 0);
-
-        sceneModel.Draw(shader);
-        for (auto& m : extraMeshes) m.Draw(shader);
+        sceneModel.Draw(cubeShader);
+        for (auto& m : extraMeshes) m.Draw(cubeShader);
         if (uistate.create_cube) {
-            Cube c(uistate.cube_size);
-            extraMeshes.emplace_back(c.vertices(), c.indices(), std::vector<Texture>{});
-            uistate.create_cube = false;
+            Cube c(uistate.cube_length, uistate.cube_width, uistate.cube_height, uistate.cube_color);
+            cubeShader.use();
+            c.Draw(cubeShader);
         }
 
         // 开始 UI 帧

@@ -11,7 +11,7 @@ uniform vec3 lightDir;
 uniform vec3 lightColor;
 
 void main() {
-    if (vIsOutline > 0.5) {
+        if (vIsOutline > 0.5) {
         FragColor = vec4(0.0, 0.0, 0.0, 1.0); // 描边设为黑色
         return;
     }
@@ -22,7 +22,7 @@ void main() {
     
     // 基础光照模型：环境光 + 漫反射
     float diff = max(dot(norm, L), 0.0);
-    vec3 result = (0.4 + 0.7 * diff) * lightColor * texColor.rgb;
+    vec3 result = lightColor * texColor.rgb;
     
     FragColor = vec4(result, texColor.a);
 }
