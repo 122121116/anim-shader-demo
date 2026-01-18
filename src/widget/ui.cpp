@@ -106,6 +106,11 @@ void ui_draw(UIState& state) {
     ImGui::SliderFloat3("Direcional Light Color", &state.light_color.x, 0.0f, 1.0f);
     ImGui::Separator();
 
+    ImGui::Text("Point Light (Shadow)");
+    ImGui::SliderFloat3("Point Light Position", &state.point_light_pos.x, -20.0f, 20.0f);
+    ImGui::SliderFloat3("Point Light Color", &state.point_light_color.x, 0.0f, 1.0f);
+    ImGui::Separator();
+
     ImGui::Text("Cubes");
     if (ImGui::Button("Add Cube")) {
         CubeConfig c;

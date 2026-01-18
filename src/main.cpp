@@ -13,6 +13,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "shadow.h"
 
 int main()
 {
@@ -60,6 +61,8 @@ int main()
     }
     Shader shader;
     Shader cubeShader;
+    Shader depthShader;
+    PointLightShadow pointShadow;
     if (!shader.compileFromFiles("resource/shader/vertex.vs", "resource/shader/pixel.vs")) {
         std::cerr << "Shader error: " << shader.error() << std::endl;
         glfwDestroyWindow(window);
@@ -71,6 +74,17 @@ int main()
         glfwDestroyWindow(window);
         glfwTerminate();
         return -1;
+    }
+
+    bool shadowShaderOk = depthShader.compileFromFiles("resource/shader/depth_point.vs", "resource/shader/depth_point.fs");
+    bool shadowOk = false;
+    if (shadowShaderOk) {
+        shadowOk = pointShadow.init(1024, 0.1f, 50.0f);
+        if (!shadowOk) {
+            std::cerr << "Shadow framebuffer init failed" << std::endl;
+        }
+    } else {
+        std::cerr << "Shadow shader error: " << depthShader.error() << std::endl;
     }
 
     Model sceneModel("resource/model/mi.glb");
@@ -96,6 +110,56 @@ int main()
         ui_update_input(uistate, window, dt);
         ui_compute_matrices(uistate, w, h);
 
+        if (shadowOk) {
+            pointShadow.setLightPos(uistate.light_pos);
+            std::vector<glm::mat4> shadowMatrices;
+            pointShadow.computeMatrices(shadowMatrices);
+
+            glViewport(0, 0, pointShadow.size(), pointShadow.size());
+            glBindFramebuffer(GL_FRAMEBUFFER, pointShadow.fbo());
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            depthShader.use();
+            GLint depthModelLoc = depthShader.uniform("model");
+            GLint depthMatrixLoc = depthShader.uniform("shadowMatrix");
+            GLint depthLightPosLoc = depthShader.uniform("lightPos");
+            GLint depthFarPlaneLoc = depthShader.uniform("far_plane");
+
+            if (depthLightPosLoc >= 0) glUniform3fv(depthLightPosLoc, 1, glm::value_ptr(uistate.light_pos));
+            if (depthFarPlaneLoc >= 0) glUniform1f(depthFarPlaneLoc, pointShadow.farPlane());
+
+            for (int face = 0; face < 6; ++face) {
+                if (depthMatrixLoc >= 0) glUniformMatrix4fv(depthMatrixLoc, 1, GL_FALSE, glm::value_ptr(shadowMatrices[face]));
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, pointShadow.depthMap(), 0);
+                glClear(GL_DEPTH_BUFFER_BIT);
+
+                if (depthModelLoc >= 0) glUniformMatrix4fv(depthModelLoc, 1, GL_FALSE, glm::value_ptr(uistate.model));
+                sceneModel.Draw(depthShader);
+                for (auto& m : extraMeshes) {
+                    if (depthModelLoc >= 0) glUniformMatrix4fv(depthModelLoc, 1, GL_FALSE, glm::value_ptr(uistate.model));
+                    m.Draw(depthShader);
+                }
+
+                if (!uistate.cubes.empty()) {
+                    for (const auto& cfg : uistate.cubes) {
+                        if (!cfg.visible) continue;
+                        glm::mat4 rx = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.x), glm::vec3(1.0f, 0.0f, 0.0f));
+                        glm::mat4 ry = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.y), glm::vec3(0.0f, 1.0f, 0.0f));
+                        glm::mat4 rz = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                        glm::mat4 t = glm::translate(glm::mat4(1.0f), cfg.pos);
+                        glm::mat4 s = glm::scale(glm::mat4(1.0f), glm::vec3(cfg.scale));
+                        glm::mat4 modelcube = t * rz * ry * rx * s;
+                        if (depthModelLoc >= 0) glUniformMatrix4fv(depthModelLoc, 1, GL_FALSE, glm::value_ptr(modelcube));
+                        Cube c(cfg.length, cfg.width, cfg.height, cfg.color);
+                        c.Draw(depthShader);
+                    }
+                }
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glViewport(0, 0, w, h);
+        }
+
         shader.use();
         GLint locModel = shader.uniform("model");
         GLint locView = shader.uniform("view");
@@ -109,6 +173,15 @@ int main()
         shader.setVec3("lightColor", uistate.light_color);
         shader.setFloat("outlineWidth", uistate.outlinewidth);
         shader.setInt("texture1", 0);
+        shader.setBool("useShadow", shadowOk);
+        if (shadowOk) {
+            shader.setVec3("lightPos", uistate.point_light_pos);
+            shader.setVec3("pointLightColor", uistate.point_light_color);
+            shader.setFloat("far_plane", pointShadow.farPlane());
+            shader.setInt("shadowMap", 1);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadow.depthMap());
+        }
 
         sceneModel.Draw(shader);
         for (auto& m : extraMeshes) m.Draw(shader);
@@ -122,6 +195,15 @@ int main()
             if (cubeProj >= 0) glUniformMatrix4fv(cubeProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
             cubeShader.setVec3("lightDir", uistate.light_pos);
             cubeShader.setVec3("lightColor", uistate.light_color);
+            cubeShader.setBool("useShadow", shadowOk);
+            if (shadowOk) {
+                cubeShader.setVec3("lightPos", uistate.point_light_pos);
+                cubeShader.setVec3("pointLightColor", uistate.point_light_color);
+                cubeShader.setFloat("far_plane", pointShadow.farPlane());
+                cubeShader.setInt("shadowMap", 1);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadow.depthMap());
+            }
             for (const auto& cfg : uistate.cubes) {
                 if (!cfg.visible) continue;
                 glm::mat4 rx = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.x), glm::vec3(1.0f, 0.0f, 0.0f));

@@ -40,6 +40,9 @@ struct UIState {
     glm::mat4 projection;
     glm::vec3 view_pos;
 
+    glm::vec3 point_light_pos = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 point_light_color = glm::vec3(1.0f, 1.0f, 1.0f);
+
     glm::mat4 modelcube;
     bool create_cube = false;
     float cube_length = 1.0f;
