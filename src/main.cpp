@@ -52,15 +52,23 @@ int main()
 
         int w=0,h=0; glfwGetFramebufferSize(window, &w, &h);
         glViewport(0, 0, w, h);
+
         float aspect = (h>0) ? (float)w/(float)h : 1.777f;
-        glm::mat4 projection = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 100.0f);
-        glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 3.5f, 3.0f),
-                                     glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::mat4 projection = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 200.0f);
+        glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 1.5f, 1.0f),
+                                     glm::vec3(0.0f, 1.5f, 0.0f),
                                      glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 modelMatrix(1.0f);
         GLint locModel = shader.uniform("model");
         GLint locView = shader.uniform("view");
         GLint locProj = shader.uniform("projection");
+
+        shader.setBool("isOutline", true);
+        shader.setFloat("outlineWidth", 0.005f);
+        shader.setVec3("lightDir", glm::vec3(0.0f, -1.0f, -1.0f));
+        shader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        shader.setVec3("viewPos", glm::vec3(0.0f, 1.5f, 1.0f));
+
         if (locModel>=0) glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(modelMatrix));
         if (locView>=0) glUniformMatrix4fv(locView, 1, GL_FALSE, glm::value_ptr(view));
         if (locProj>=0) glUniformMatrix4fv(locProj, 1, GL_FALSE, glm::value_ptr(projection));

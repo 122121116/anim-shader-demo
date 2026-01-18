@@ -1,4 +1,6 @@
 #include "shader.h"
+#include "glm.hpp"
+#include "gtc/type_ptr.hpp"
 #include <fstream>
 #include <sstream>
 Shader::Shader() : program_(0) {}
@@ -88,4 +90,8 @@ void Shader::setInt(const std::string &name, int value) const {
 void Shader::setFloat(const std::string &name, float value) const {
     GLint loc = glGetUniformLocation(program_, name.c_str());
     if (loc != -1) glUniform1f(loc, value);
+}
+void Shader::setVec3(const std::string &name, const glm::vec3& value) const {
+    GLint loc = glGetUniformLocation(program_, name.c_str());
+    if (loc != -1) glUniform3fv(loc, 1, glm::value_ptr(value));
 }
