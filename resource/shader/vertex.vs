@@ -35,11 +35,9 @@ void main() {
         vIsOutline = 1.0;
     }
     
-    // 输出到片段着色器
     FragPos = finalPos.xyz;
     Normal = worldNormal;
     TexCoords = aTexCoords;
     
-    // 转换到裁剪空间
     gl_Position = projection * view * finalPos;
 }

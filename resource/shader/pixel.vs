@@ -7,22 +7,35 @@ in float vIsOutline;
 out vec4 FragColor;
 
 uniform sampler2D texture1;
-uniform vec3 lightDir;
+uniform vec3 lightPos;
 uniform vec3 lightColor;
+uniform samplerCube shadowMap;
+uniform float farPlane;
 
 void main() {
-        if (vIsOutline > 0.5) {
-        FragColor = vec4(0.0, 0.0, 0.0, 1.0); // 描边设为黑色
+    if (vIsOutline > 0.5) {
+        FragColor = vec4(0.0, 0.0, 0.0, 1.0);
         return;
     }
 
-    vec4 texColor = texture(texture1, TexCoords); // 采样 texture1
+    vec4 texColor = texture(texture1, TexCoords);
     vec3 norm = normalize(Normal);
-    vec3 L = normalize(-lightDir);
+    vec3 lightDir = lightPos - FragPos;
+    float distanceToLight = length(lightDir);
+    vec3 L = lightDir / distanceToLight;
     
-    // 基础光照模型：环境光 + 漫反射
     float diff = max(dot(norm, L), 0.0);
-    vec3 result = lightColor * texColor.rgb;
+    vec3 ambient = 0.2 * lightColor * texColor.rgb;
+
+    float shadow = 0.0;
+    float bias = 0.05;
+    float closestDepth = texture(shadowMap, L).r * farPlane;
+    if (distanceToLight - bias > closestDepth) {
+        shadow = 1.0;
+    }
+
+    float lighting = (1.0 - shadow) * diff;
+    vec3 result = ambient + lighting * lightColor * texColor.rgb;
     
     FragColor = vec4(result, texColor.a);
 }

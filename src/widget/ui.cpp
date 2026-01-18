@@ -102,8 +102,8 @@ void ui_draw(UIState& state) {
     ImGui::SliderFloat("Model Scale", &state.model_scale, 0.01f, 10.0f);
     ImGui::Separator();
 
-    ImGui::SliderFloat3("Direcional Light Direction", &state.light_pos.x, -20.0f, 20.0f);
-    ImGui::SliderFloat3("Direcional Light Color", &state.light_color.x, 0.0f, 1.0f);
+    ImGui::SliderFloat3("Light Pos", &state.light_pos.x, -20.0f, 20.0f);
+    ImGui::SliderFloat3("Light Color", &state.light_color.x, 0.0f, 1.0f);
     ImGui::Separator();
 
     ImGui::Text("Cubes");

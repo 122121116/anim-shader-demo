@@ -17,7 +17,6 @@ void main() {
     vec3 worldNormal = normalize(normalMatrix * aNormal);
     
     vec4 finalPos = worldPos;
-   
     FragPos = finalPos.xyz;
     Normal = worldNormal;
     CubeColor = color;

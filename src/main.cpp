@@ -9,6 +9,7 @@
 #include "gtc/type_ptr.hpp"
 #include "ui.h"
 #include "cube.h"
+#include "light.h"
 #include <vector>
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -60,6 +61,7 @@ int main()
     }
     Shader shader;
     Shader cubeShader;
+    Shader depthShader;
     if (!shader.compileFromFiles("resource/shader/vertex.vs", "resource/shader/pixel.vs")) {
         std::cerr << "Shader error: " << shader.error() << std::endl;
         glfwDestroyWindow(window);
@@ -72,29 +74,84 @@ int main()
         glfwTerminate();
         return -1;
     }
+    if (!depthShader.compileFromFiles("resource/shader/depth.vs", "resource/shader/depth_frag.vs")) {
+        std::cerr << "Shader error: " << depthShader.error() << std::endl;
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return -1;
+    }
 
     Model sceneModel("resource/model/mi.glb");
 
     UIState uistate;
+    Light light;
 
     int init_w = 0, init_h = 0;
     glfwGetFramebufferSize(window, &init_w, &init_h);
     ui_init(uistate, init_w, init_h);
+    light.setupShadowCube(1024, 1.0f, 50.0f);
     std::vector<Mesh> extraMeshes;
     double lastTime = glfwGetTime();
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        int w=0,h=0; glfwGetFramebufferSize(window, &w, &h);
-        glViewport(0, 0, w, h);
+        int w=0,h=0;
+        glfwGetFramebufferSize(window, &w, &h);
 
         double now = glfwGetTime();
         float dt = float(now - lastTime);
         lastTime = now;
         ui_update_input(uistate, window, dt);
         ui_compute_matrices(uistate, w, h);
+
+        light.setPoint(uistate.light_pos, uistate.light_color);
+
+        float nearPlane = 1.0f;
+        float farPlane = light.farPlane();
+        glm::vec3 lightPos = light.position();
+        float aspect = 1.0f;
+        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, nearPlane, farPlane);
+        glm::mat4 shadowTransforms[6];
+        shadowTransforms[0] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        shadowTransforms[1] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        shadowTransforms[2] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        shadowTransforms[3] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+        shadowTransforms[4] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        shadowTransforms[5] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+
+        depthShader.use();
+        depthShader.setVec3("lightPos", lightPos);
+        depthShader.setFloat("farPlane", farPlane);
+
+        light.beginDepthPass();
+        for (int face = 0; face < 6; ++face) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, light.depthCubeTexture(), 0);
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            depthShader.setMat4("lightSpaceMatrix", shadowTransforms[face]);
+            depthShader.setMat4("model", uistate.model);
+            sceneModel.Draw(depthShader);
+            for (auto& m : extraMeshes) m.Draw(depthShader);
+            if (!uistate.cubes.empty()) {
+                for (const auto& cfg : uistate.cubes) {
+                    if (!cfg.visible) continue;
+                    glm::mat4 rx = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.x), glm::vec3(1.0f, 0.0f, 0.0f));
+                    glm::mat4 ry = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.y), glm::vec3(0.0f, 1.0f, 0.0f));
+                    glm::mat4 rz = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                    glm::mat4 t = glm::translate(glm::mat4(1.0f), cfg.pos);
+                    glm::mat4 s = glm::scale(glm::mat4(1.0f), glm::vec3(cfg.scale));
+                    glm::mat4 modelcube = t * rz * ry * rx * s;
+                    depthShader.setMat4("model", modelcube);
+                    Cube c(cfg.length, cfg.width, cfg.height, cfg.color);
+                    c.Draw(depthShader);
+                }
+            }
+        }
+        light.endDepthPass();
+
+        glViewport(0, 0, w, h);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.use();
         GLint locModel = shader.uniform("model");
@@ -105,10 +162,15 @@ int main()
         if (locProj >= 0) glUniformMatrix4fv(locProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
 
         shader.setVec3("viewPos", uistate.view_pos);
-        shader.setVec3("lightDir", uistate.light_pos);
-        shader.setVec3("lightColor", uistate.light_color);
+        shader.setVec3("lightPos", light.position());
+        shader.setVec3("lightColor", light.color());
         shader.setFloat("outlineWidth", uistate.outlinewidth);
         shader.setInt("texture1", 0);
+        shader.setInt("shadowMap", 1);
+        shader.setFloat("farPlane", farPlane);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, light.depthCubeTexture());
 
         sceneModel.Draw(shader);
         for (auto& m : extraMeshes) m.Draw(shader);
@@ -120,8 +182,12 @@ int main()
             GLint cubeProj = cubeShader.uniform("projection");
             if (cubeView >= 0) glUniformMatrix4fv(cubeView, 1, GL_FALSE, glm::value_ptr(uistate.view));
             if (cubeProj >= 0) glUniformMatrix4fv(cubeProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
-            cubeShader.setVec3("lightDir", uistate.light_pos);
-            cubeShader.setVec3("lightColor", uistate.light_color);
+            cubeShader.setVec3("lightPos", light.position());
+            cubeShader.setVec3("lightColor", light.color());
+            cubeShader.setInt("shadowMap", 1);
+            cubeShader.setFloat("farPlane", farPlane);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, light.depthCubeTexture());
             for (const auto& cfg : uistate.cubes) {
                 if (!cfg.visible) continue;
                 glm::mat4 rx = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.x), glm::vec3(1.0f, 0.0f, 0.0f));
