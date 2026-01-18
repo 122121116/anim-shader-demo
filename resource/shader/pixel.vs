@@ -1,38 +1,49 @@
 #version 330 core
+in vec3 FragPos;
+in vec3 Normal;
+in vec2 TexCoords;
 
-// 顶点属性输入 (严格匹配 buffer.cpp location 设置)
-layout (location = 0) in vec3 aPos;    // 顶点局部坐标
-layout (location = 1) in vec3 aNormal; // 顶点法线，用于描边位移与光照计算
-layout (location = 2) in vec2 aUV0;    // 第一套 UV 坐标，用于纹理采样
+out vec4 FragColor;
 
-// 传往片元着色器的变量
-out vec3 FragPos;  
-out vec3 Normal;   
-out vec2 TexCoord; 
+[cite_start]
+uniform sampler2D texture1;  
 
-// 坐标变换矩阵 (由外部程序传入)
-uniform mat4 model;      
-uniform mat4 view;       
-uniform mat4 projection; 
+// --- 新增：外部光照模型参数 ---
+uniform vec3 lightDir;      // 光照方向
+uniform float lightIntensity; // 光照强度
+uniform vec3 lightColor;    // 光源颜色
+uniform vec3 viewPos;       // 相机位置
+uniform bool isOutline;     // 描边标识
 
-// 描边控制参数
-uniform bool isOutline;     // 是否开启描边渲染模式
-uniform float outlineWidth; // 描边粗细（顶点沿法线方向外扩的距离）
-
-void main()
-{
-    vec3 pos = aPos;
-    
-    // 【功能：描边位移】
-    // 若处于描边模式，顶点坐标沿法线方向偏移
+void main() {
+    // 【功能实现：描边颜色】
+    // 膨胀的边缘描成黑色
     if (isOutline) {
-        pos += aNormal * outlineWidth;
+        FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        return;
     }
 
-    // 计算世界空间位置与法线
-    FragPos = vec3(model * vec4(pos, 1.0));
-    Normal = mat3(transpose(inverse(model))) * aNormal;  
-    TexCoord = aUV0; 
+    [cite_start]// 1. 贴图采样 [cite: 2]
+    vec4 texColor = texture(texture1, TexCoords);
+
+    // 2. 【功能实现：完善光照模型】
+    vec3 norm = normalize(Normal);
+    vec3 L = normalize(-lightDir); // 光源向量
     
-    gl_Position = projection * view * vec4(FragPos, 1.0);
+    // 环境光 (Ambient)
+    vec3 ambient = 0.2 * lightColor;
+    
+    // 漫反射 (Diffuse)
+    float diff = max(dot(norm, L), 0.0);
+    vec3 diffuse = diff * lightColor * lightIntensity;
+    
+    // 镜面反射 (Specular / Blinn-Phong)
+    vec3 V = normalize(viewPos - FragPos);
+    vec3 H = normalize(L + V);
+    float spec = pow(max(dot(norm, H), 0.0), 32.0);
+    vec3 specular = spec * lightColor * lightIntensity;
+
+    // 3. 颜色合成
+    vec3 result = (ambient + diffuse + specular) * texColor.rgb;
+    FragColor = vec4(result, texColor.a);
 }
