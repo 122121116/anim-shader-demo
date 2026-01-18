@@ -11,6 +11,18 @@ void ui_init(UIState& state, int width, int height) {
     state.last_y = height * 0.5;
     state.model = glm::mat4(1.0f);
     state.view_pos = state.camera_pos;
+    state.cubes.clear();
+    CubeConfig c;
+    c.length = state.cube_length;
+    c.width = state.cube_width;
+    c.height = state.cube_height;
+    c.pos = state.cube_pos;
+    c.scale = state.cube_scale;
+    c.color = state.cube_color;
+    c.rot = state.cube_rot;
+    c.visible = true;
+    state.cubes.push_back(c);
+    state.selected_cube = 0;
     ui_compute_matrices(state, width, height);
 }
 void ui_update_input(UIState& state, GLFWwindow* window, float dt) {
@@ -73,13 +85,6 @@ void ui_compute_matrices(UIState& state, int width, int height) {
     glm::mat4 t = glm::translate(glm::mat4(1.0f), state.model_pos);
     glm::mat4 s = glm::scale(glm::mat4(1.0f), glm::vec3(state.model_scale));
     state.model = t * rz * ry * rx * s;
-
-    rx = glm::rotate(glm::mat4(1.0f), glm::radians(state.cube_rot.x), glm::vec3(1.0f, 0.0f, 0.0f));
-    ry = glm::rotate(glm::mat4(1.0f), glm::radians(state.cube_rot.y), glm::vec3(0.0f, 1.0f, 0.0f));
-    rz = glm::rotate(glm::mat4(1.0f), glm::radians(state.cube_rot.z), glm::vec3(0.0f, 0.0f, 1.0f));
-    t = glm::translate(glm::mat4(1.0f), state.cube_pos);
-    s = glm::scale(glm::mat4(1.0f), glm::vec3(state.cube_scale));
-    state.modelcube = t * rz * ry * rx * s;
 }
 
 
@@ -101,11 +106,45 @@ void ui_draw(UIState& state) {
     ImGui::SliderFloat3("Direcional Light Color", &state.light_color.x, 0.0f, 1.0f);
     ImGui::Separator();
 
-    ImGui::SliderFloat3("Cube Pos", &state.cube_pos.x, -10.0f, 10.0f);
-    ImGui::SliderFloat3("Cube Rot", &state.cube_rot.x, -180.0f, 180.0f);
-    ImGui::SliderFloat("Cube Scale", &state.cube_scale, 0.1f, 10.0f);
-    ImGui::SliderFloat3("Cube Color", &state.cube_color.x, 0.0f, 1.0f);
-    if (ImGui::Button("Create Cube")) state.create_cube = !state.create_cube;
+    ImGui::Text("Cubes");
+    if (ImGui::Button("Add Cube")) {
+        CubeConfig c;
+        c.length = state.cube_length;
+        c.width = state.cube_width;
+        c.height = state.cube_height;
+        c.pos = state.cube_pos;
+        c.scale = state.cube_scale;
+        c.color = state.cube_color;
+        c.rot = state.cube_rot;
+        c.visible = true;
+        state.cubes.push_back(c);
+        state.selected_cube = int(state.cubes.size()) - 1;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Remove Selected")) {
+        if (state.selected_cube >= 0 && state.selected_cube < int(state.cubes.size())) {
+            state.cubes.erase(state.cubes.begin() + state.selected_cube);
+            if (state.cubes.empty()) {
+                state.selected_cube = -1;
+            } else if (state.selected_cube >= int(state.cubes.size())) {
+                state.selected_cube = int(state.cubes.size()) - 1;
+            }
+        }
+    }
+    int count = int(state.cubes.size());
+    if (count > 0) {
+        if (state.selected_cube < 0 || state.selected_cube >= count) state.selected_cube = 0;
+        ImGui::SliderInt("Selected Cube", &state.selected_cube, 0, count - 1);
+        CubeConfig& c = state.cubes[state.selected_cube];
+        ImGui::Checkbox("Visible", &c.visible);
+        ImGui::SliderFloat3("Cube Pos", &c.pos.x, -10.0f, 10.0f);
+        ImGui::SliderFloat3("Cube Rot", &c.rot.x, -180.0f, 180.0f);
+        ImGui::SliderFloat("Cube Scale", &c.scale, 0.1f, 10.0f);
+        ImGui::SliderFloat3("Cube Color", &c.color.x, 0.0f, 1.0f);
+        ImGui::SliderFloat("Cube Length", &c.length, 0.1f, 10.0f);
+        ImGui::SliderFloat("Cube Width", &c.width, 0.1f, 10.0f);
+        ImGui::SliderFloat("Cube Height", &c.height, 0.1f, 10.0f);
+    }
     ImGui::Separator();
 
     ImGui::DragFloat("outline width", &state.outlinewidth, 0.0001f, 0.0f, 0.1f, "%.4f");

@@ -14,7 +14,7 @@ void main() {
     
     float diff = max(dot(norm, L), 0.0);
 
-    vec3 result = (0.2+diff) * lightColor * CubeColor;
+    vec3 result = (0.4+diff) * lightColor * CubeColor;
     
     FragColor = vec4(result, 1.0);
 }

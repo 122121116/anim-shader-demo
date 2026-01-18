@@ -1,8 +1,19 @@
 #pragma once
 #include "cube.h"
+#include <vector>
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 struct GLFWwindow;
+struct CubeConfig {
+    float length = 1.0f;
+    float width = 1.0f;
+    float height = 1.0f;
+    glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f);
+    float scale = 1.0f;
+    glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 rot = glm::vec3(0.0f, 0.0f, 0.0f);
+    bool visible = true;
+};
 struct UIState {
     bool ui_active = false;
     bool input_paused = false;
@@ -30,17 +41,16 @@ struct UIState {
     glm::vec3 view_pos;
 
     glm::mat4 modelcube;
-
     bool create_cube = false;
     float cube_length = 1.0f;
-    float cube_width = 0.5f;
-    float cube_height = 0.1f;
+    float cube_width = 1.0f;
+    float cube_height = 1.0f;
     glm::vec3 cube_pos = glm::vec3(0.0f, 0.0f, 0.0f);
     float cube_scale = 1.0f;
     glm::vec3 cube_color = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 cube_rot = glm::vec3(0.0f, 0.0f, 0.0f);
-
-
+    std::vector<CubeConfig> cubes;
+    int selected_cube = -1;
     double last_x = 0.0;
     double last_y = 0.0;
     bool first_mouse = true;

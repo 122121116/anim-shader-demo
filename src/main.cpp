@@ -113,18 +113,27 @@ int main()
         sceneModel.Draw(shader);
         for (auto& m : extraMeshes) m.Draw(shader);
 
-        if (uistate.create_cube) {
+        if (!uistate.cubes.empty()) {
             cubeShader.use();
             GLint cubeModel = cubeShader.uniform("model");
             GLint cubeView = cubeShader.uniform("view");
             GLint cubeProj = cubeShader.uniform("projection");
-            if (cubeModel >= 0) glUniformMatrix4fv(cubeModel, 1, GL_FALSE, glm::value_ptr(uistate.modelcube));
             if (cubeView >= 0) glUniformMatrix4fv(cubeView, 1, GL_FALSE, glm::value_ptr(uistate.view));
             if (cubeProj >= 0) glUniformMatrix4fv(cubeProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
             cubeShader.setVec3("lightDir", uistate.light_pos);
             cubeShader.setVec3("lightColor", uistate.light_color);
-            Cube c(uistate.cube_length, uistate.cube_width, uistate.cube_height, uistate.cube_color);
-            c.Draw(cubeShader);
+            for (const auto& cfg : uistate.cubes) {
+                if (!cfg.visible) continue;
+                glm::mat4 rx = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.x), glm::vec3(1.0f, 0.0f, 0.0f));
+                glm::mat4 ry = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.y), glm::vec3(0.0f, 1.0f, 0.0f));
+                glm::mat4 rz = glm::rotate(glm::mat4(1.0f), glm::radians(cfg.rot.z), glm::vec3(0.0f, 0.0f, 1.0f));
+                glm::mat4 t = glm::translate(glm::mat4(1.0f), cfg.pos);
+                glm::mat4 s = glm::scale(glm::mat4(1.0f), glm::vec3(cfg.scale));
+                glm::mat4 modelcube = t * rz * ry * rx * s;
+                if (cubeModel >= 0) glUniformMatrix4fv(cubeModel, 1, GL_FALSE, glm::value_ptr(modelcube));
+                Cube c(cfg.length, cfg.width, cfg.height, cfg.color);
+                c.Draw(cubeShader);
+            }
         }
 
         // 开始 UI 帧

@@ -54,8 +54,8 @@ root/
 ## 第三方库与精简说明
 - GLFW：用于创建窗口与管理 OpenGL 上下文。项目仅面向 Windows，非 Windows/Unix 后端源码已删除。
 - Dear ImGui：用于 UI 与调试，保留 `imgui_impl_glfw` 与 `imgui_impl_opengl3` 后端。
-- Assimp：用于模型导入，当前仅启用 OBJ 格式（`AssetLib/Obj`），其它格式与示例、测试、文档等已移除以减小体积。
-  - 如需更多格式（如 FBX、glTF），可在 CMake 中开启对应导入器并恢复相关目录。
+- Assimp：用于模型导入，当前示例使用 `resource/model/mi.glb`（glTF 二进制格式），只保留项目需要的核心代码与依赖。
+  - 如需支持更多格式或功能，可在 CMake 中调整 Assimp 相关配置。
 
 ## 配置与构建
 1. Virtual Studio方案，直接打开项目，编译后选GraphicsHomework.exe运行
@@ -84,41 +84,52 @@ root/
   ```
   GraphicsHomework.exe
   ```
-- 程序将创建一个 OpenGL3 上下文的窗口，并展示 ImGui 示例界面。
+- 程序将创建一个 OpenGL3 上下文的窗口，并加载 `resource/model/mi.glb` 模型与 ImGui 控制面板。
 
-## 关键模块与用法
-- 顶点/材质/纹理结构体（`include/attribute.h`）
-  - Vertex: position[3], normal[3], uv0[2], uv1[2], uv2[2]
-  - MaterialDesc: color[3], map_uuid
-  - TextureDesc: image_uuid, image_bytes, width, height, srgb, generate_mipmaps
-- 模型加载（`include/load.h`, `src/load.cpp`）
-  - Load::loadFromFile(path): 加载模型，填充顶点、材质与 GL 纹理
-  - vertices(): 返回所有顶点
-  - materials(): 返回所有材质
-  - texturesGL(): 返回创建好的 OpenGL 纹理句柄数组
-- 缓冲绑定（`include/buffer.h`, `src/graghics/buffer.cpp`）
-  - MeshBuffer: 管理 VAO/VBO/EBO，setData(vertices, indices) 上传数据并设置属性布局（位置/法线/uv0/uv1/uv2）
-  - draw(): 使用 glDrawElements 绘制
+## 关键模块
+- `include/shader.h`, `src/graghics/shader.cpp`
+  - 封装 OpenGL 着色器编译与 uniform 设置（`setVec3`, `setFloat` 等）。
+- `include/mesh.h`, `src/graghics/mesh.cpp`
+  - 封装模型网格（顶点、索引、纹理）与 VAO/VBO/EBO 绑定及绘制。
+- `include/model.h`, `src/graghics/model.cpp`
+  - 使用 Assimp 加载模型（当前示例为 glb），并递归构建多个 `Mesh`。
+- `include/ui.h`, `src/widget/ui.cpp`
+  - 管理相机、模型、光源和立方体的 UI 状态。
+  - 使用 ImGui 绘制控制面板（相机参数、模型变换、光照参数、Cube 参数等）。
+- `include/cube.h`, `src/tool/cube.cpp`
+  - 根据长宽高与颜色动态生成立方体顶点和索引，并使用单独的着色器进行渲染。
+- `src/main.cpp`
+  - 程序入口：初始化 OpenGL、ImGui、加载模型与着色器，主循环中更新 UIState、设置矩阵与光照参数并绘制场景。
 
-## 测试
-- 加载测试（`src/test/loadtest.cpp`）
-  - `int test_load_model()`：打印顶点、材质与 GL 纹理数量，用于验证加载是否成功
-- 缓冲填充测试（`src/test/bufferfill_test.cpp`）
-  - `int test_buffer_fill()`：自建隐藏窗口初始化 OpenGL，上传一个三角形的顶点/索引，打印 VBO/EBO 实际字节大小与期望值，用于验证缓冲填充正确性
-  - 在 `main.cpp` 最开始调用 `test_buffer_fill()`，避免与主窗口的 GLFW 生命周期冲突
+## 交互与控件说明
+### 基本操作
+- `P`：开启/关闭 ImGui 控制面板，同时切换鼠标捕获。
+- 鼠标移动：在未暂停输入时控制相机视角（Yaw/Pitch）。
+- `W/S/A/D`：前后左右移动相机。
+- `Space` / `Left Ctrl`：沿世界 Up 方向上升 / 下降。
 
-## UV 通道与贴图约定
-- uv0（TEXCOORD_0）：基础颜色/法线等主贴图
-- uv1（TEXCOORD_1）：贴花/部件专用贴图
-- uv2（TEXCOORD_2）：AO/Lightmap 等光照相关贴图
-- GL 纹理上传
-  - BaseColor/Albedo 建议使用 sRGB 内部格式
-  - AO/法线使用线性格式
-  - 按 generate_mipmaps 决定是否生成 mipmap
+### ImGui 面板（ui_draw）
+- Camera
+  - `Camera Position`：相机世界坐标。
+  - `Yaw` / `Pitch`：相机欧拉角。
+  - `Speed`：相机移动速度。
+  - `FOV`：透视投影视角。
+- Model
+  - `Model Pos` / `Model Rot` / `Model Scale`：控制主模型的平移、旋转与缩放。
+- Light
+  - `Direcional Light Direction`：方向光方向。
+  - `Direcional Light Color`：方向光颜色。
+- Cube
+  - `Cube Pos` / `Cube Rot` / `Cube Scale`：控制立方体在世界空间中的变换。
+  - `Cube Color`：立方体颜色。
+  - `Create Cube` 按钮：开关立方体的显示与渲染。
+- 其他
+  - `outline width`：控制描边膨胀宽度（影响主模型轮廓效果）。
+
+### 关于 Cube 按钮与相机
+- 当按下 `Create Cube` 按钮后，会根据当前 UI 中的尺寸与颜色参数创建一个立方体，并与场景共享同一套 `view`/`projection` 矩阵。
+- 移动相机（鼠标 + 键盘）时，主模型和立方体都会随视角变化正常运动，不会出现模型“贴死在屏幕上”的现象。
 
 ## 注意
-- 若在同一进程内多次初始化/销毁 GLFW，请确保调用顺序不会破坏已有窗口与上下文
-- 外部贴图路径需在 `resource/` 下有效；内嵌贴图由 Assimp 从 glb 中解析并上传
-
-## 参考文献
-
+- 若在同一进程内多次初始化/销毁 GLFW，请确保调用顺序不会破坏已有窗口与上下文。
+- 资源文件（模型、着色器）路径需在 `resource/` 目录下有效。
