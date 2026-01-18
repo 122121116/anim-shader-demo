@@ -14,6 +14,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "shadow.h"
 
 int main()
 {
@@ -175,6 +176,15 @@ int main()
 
         //glActiveTexture(GL_TEXTURE1);
         //glBindTexture(GL_TEXTURE_CUBE_MAP, light.depthCubeTexture());
+        shader.setBool("useShadow", shadowOk);
+        if (shadowOk) {
+            shader.setVec3("lightPos", uistate.point_light_pos);
+            shader.setVec3("pointLightColor", uistate.point_light_color);
+            shader.setFloat("far_plane", pointShadow.farPlane());
+            shader.setInt("shadowMap", 1);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadow.depthMap());
+        }
 
         sceneModel.Draw(shader);
         for (auto& m : extraMeshes) m.Draw(shader);
