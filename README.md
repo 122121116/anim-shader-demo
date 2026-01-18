@@ -1,135 +1,129 @@
-# 图形学大作业项目说明
+# OpenGL 动画与着色器演示项目 (Anim Shader Demo)
 
-本项目基于 Glad + GLFW + OpenGL3 渲染，并使用 Dear ImGui 作为调试与 UI。第三方库统一放置在 `thirdparty` 目录中，工程使用 CMake 构建。
+本项目是一个基于现代 OpenGL (Core Profile) 的图形学演示程序，旨在展示高级光照、阴影渲染、模型加载及交互式控制功能。项目使用 C++ 编写，集成了 Dear ImGui 用于实时调试和参数调整。
 
+## ✨ 主要功能 (Features)
 
-## 主要需要实现的内容：
-- 自定义法线：避免普通平滑法线的不规则阴影。可以通过**法线贴图**解决。所以需要实现发现贴图导入和应用模块。如果模型自带法线就不使用法线贴图。
-- **ILM贴图**：实现对模型的ILM贴图渲染。（力大砖飞，同时也意味着要下载和使用有ILM的模型）
-- **描边算法**：背面膨胀算法，需要实现对模型的描边渲染。优化该算法问题（待定）
-- 基础光照模型：包括环境光、漫反射光、镜面反射光。
-- **ui（widget）**：使用imgui实现相机控制以及参数调整，包括模型导入、法线贴图导入、环境光、漫反射光、镜面反射光的参数调整。
-- 场景搭建（目前导入个模型和墙壁就行，后续再说）
-- 时间够的话可以添加动画功能
-- 其他渲染必要组件
-尽量只修改自己负责部分的代码，避免影响到其他部分的功能。创建本地分支进行开发，合并时只合并自己负责的部分。测试文件放在`test/`目录中，需要在本地配置test.exe（修改本地makelist，上传代码时不要传修改后的cmakelist）
+### 1. 渲染与光照
+*   **基础光照模型**：实现了 Blinn-Phong 光照模型，支持环境光、漫反射和镜面反射。
+*   **高级阴影渲染**：
+    *   **万向阴影映射 (Omnidirectional Shadow Mapping)**：支持点光源产生的全方位阴影。
+    *   **PCF 软阴影 (Percentage-Closer Filtering)**：通过 20 次采样和随机旋转偏移，实现了高质量的软阴影边缘，有效消除了锯齿。
+    *   **高分辨率阴影贴图**：使用 2048x2048 分辨率的深度立方体贴图，保证阴影细节。
+*   **描边效果 (Outline)**：
+    *   基于顶点法线膨胀（Vertex Extrusion）的背面描边算法。
+    *   支持动态调整描边宽度。
 
+### 2. 模型与资源
+*   **模型加载**：集成 **Assimp** 库，支持 glTF (`.glb`) 等多种通用 3D 模型格式加载。
+*   **纹理支持**：支持漫反射纹理映射，对于无纹理模型支持纯色渲染。
+*   **自定义几何体**：内置 Cube 类，支持动态创建、变换（平移、旋转、缩放）和颜色调整。
 
-## 项目结构
-- `src/`：项目源码，入口为 `main.cpp`
-- `include/`：项目头文件（可按需新增）
-- `resource/`：资源文件（模型、纹理、**着色器**等）
-- `thirdparty/`：第三方库源代码（精简版本）
-  - `glfw/`：GLFW 源码（只用于 Windows + OpenGL）
-  - `imgui/`：Dear ImGui 源码（只保留 `glfw` 与 `opengl3` 后端）
-  - `assimp/`：Assimp 源码（仅保留 OBJ 导入能力，其他格式已裁剪）stb_image.h也配置到assimp的include目录中
-- `build/`：CMake 生成的构建输出目录
-- `CMakeLists.txt`：顶层构建配置
+### 3. 交互与 UI
+*   **Dear ImGui 集成**：提供全功能的控制面板。
+*   **实时参数调整**：
+    *   **光照控制**：实时修改光源位置、颜色。
+    *   **模型变换**：控制主模型的旋转、缩放和位置。
+    *   **相机控制**：支持场景漫游（通过 UI 或键鼠）。
+    *   **物体管理**：动态添加/删除场景中的立方体，并独立控制其属性。
 
-典型目录示意：
+## 🛠️ 技术栈 (Tech Stack)
+
+*   **语言**：C++17
+*   **图形 API**：OpenGL 3.3 Core Profile
+*   **窗口管理**：GLFW
+*   **OpenGL 加载器**：GLAD
+*   **数学库**：GLM (OpenGL Mathematics)
+*   **GUI 库**：Dear ImGui
+*   **模型加载**：Assimp (Open Asset Import Library)
+*   **构建系统**：CMake
+
+## 📦 目录结构 (Project Structure)
 
 ```
 root/
-├─ src/
-│  └─ main.cpp
-├─ include/
-├─ resource/
-├─ thirdparty/
-│  ├─ glfw/
-│  ├─ imgui/
-│  │  └─ backends/ (imgui_impl_glfw, imgui_impl_opengl3)
-│  └─ assimp/
-│     ├─ code/Common + AssetLib/Obj
-│     └─ include/assimp
-├─ build/
-└─ CMakeLists.txt
+├── include/            # 头文件
+│   ├── shader.h        # 着色器管理类
+│   ├── mesh.h          # 网格数据类
+│   ├── model.h         # 模型加载类
+│   ├── light.h         # 光源与阴影管理
+│   ├── cube.h          # 立方体类
+│   └── ui.h            # UI 状态与逻辑
+├── resource/           # 资源文件
+│   ├── model/          # 3D 模型文件 (.glb)
+│   └── shader/         # GLSL 着色器源码
+│       ├── pixel.vs/fs         # 主渲染着色器
+│       ├── pixel_cube.vs/fs    # 立方体着色器
+│       ├── depth.vs/fs         # 阴影深度图生成着色器
+│       └── vertex.vs           # 顶点着色器（含描边逻辑）
+├── src/                # 源代码
+│   ├── graphics/       # 渲染相关实现 (Shader, Mesh, Model, Light)
+│   ├── tool/           # 工具类 (Cube)
+│   ├── widget/         # UI 实现
+│   └── main.cpp        # 程序入口
+├── thirdparty/         # 第三方库 (GLFW, ImGui, Assimp, GLM 等)
+├── CMakeLists.txt      # CMake 构建配置
+└── README.md           # 项目说明文档
 ```
 
-## 环境要求
-- Windows 10/11
-- Visual Studio 2022（含 C++ 开发组件）或任意 MSVC/Clang 工具链
-- CMake ≥ 3.16
-- Git（用于获取第三方依赖）
+## 🚀 构建与运行 (Build & Run)
 
-## 第三方库与精简说明
-- GLFW：用于创建窗口与管理 OpenGL 上下文。项目仅面向 Windows，非 Windows/Unix 后端源码已删除。
-- Dear ImGui：用于 UI 与调试，保留 `imgui_impl_glfw` 与 `imgui_impl_opengl3` 后端。
-- Assimp：用于模型导入，当前示例使用 `resource/model/mi.glb`（glTF 二进制格式），只保留项目需要的核心代码与依赖。
-  - 如需支持更多格式或功能，可在 CMake 中调整 Assimp 相关配置。
+### 环境要求
+*   Windows 10/11
+*   Visual Studio 2019/2022 (MSVC) 或其他 C++ 编译器
+*   CMake 3.16+
+*   Git
 
-## 配置与构建
-1. Virtual Studio方案，直接打开项目，编译后选GraphicsHomework.exe运行
+### 方式一：使用 Visual Studio 直接打开
+1.  启动 Visual Studio。
+2.  选择 "打开本地文件夹" 并指向项目根目录。
+3.  Visual Studio 会自动检测 `CMakeLists.txt` 并进行配置。
+4.  在顶部启动项选择 `GraphicsHomework.exe`。
+5.  点击运行（绿色播放按钮）。
 
-2. cmake
-- 在项目根目录生成构建目录并配置：
-   ```
-   mkdir build
-   cd build
-   cmake ..
-   ```
-- 编译：
-   ```
-   cmake --build .
-   ```
-   - 成功后可执行文件位于 `build/Debug/GraphicsHomework.exe`（或对应配置）
+### 方式二：使用命令行 (CMake)
+1.  在项目根目录打开终端。
+2.  创建构建目录并配置：
+    ```bash
+    mkdir build
+    cd build
+    cmake ..
+    ```
+3.  编译项目：
+    ```bash
+    cmake --build . --config Release
+    ```
+4.  运行程序：
+    *   生成的可执行文件通常位于 `build/Release/GraphicsHomework.exe` (或 `Debug` 目录)。
+    *   **注意**：程序运行时会自动将 `resource` 目录复制到可执行文件同级目录，确保资源能被正确加载。
 
-顶层构建的关键点：
-- 自动包含 `thirdparty/imgui` 源文件及后端
-- 使用 `add_subdirectory(thirdparty/glfw)` 构建 GLFW
-- 集成 Assimp，并关闭不必要的组件，只保留 OBJ 导入
-- 在 Windows 上链接 `opengl32` 与 `gdi32`
+## 🎮 操作说明 (Controls)
 
-## 运行
-- 直接运行生成的可执行文件：
-  ```
-  GraphicsHomework.exe
-  ```
-- 程序将创建一个 OpenGL3 上下文的窗口，并加载 `resource/model/mi.glb` 模型与 ImGui 控制面板。
+程序启动后，你会看到主渲染窗口和 ImGui 控制面板。
 
-## 关键模块
-- `include/shader.h`, `src/graghics/shader.cpp`
-  - 封装 OpenGL 着色器编译与 uniform 设置（`setVec3`, `setFloat` 等）。
-- `include/mesh.h`, `src/graghics/mesh.cpp`
-  - 封装模型网格（顶点、索引、纹理）与 VAO/VBO/EBO 绑定及绘制。
-- `include/model.h`, `src/graghics/model.cpp`
-  - 使用 Assimp 加载模型（当前示例为 glb），并递归构建多个 `Mesh`。
-- `include/ui.h`, `src/widget/ui.cpp`
-  - 管理相机、模型、光源和立方体的 UI 状态。
-  - 使用 ImGui 绘制控制面板（相机参数、模型变换、光照参数、Cube 参数等）。
-- `include/cube.h`, `src/tool/cube.cpp`
-  - 根据长宽高与颜色动态生成立方体顶点和索引，并使用单独的着色器进行渲染。
-- `src/main.cpp`
-  - 程序入口：初始化 OpenGL、ImGui、加载模型与着色器，主循环中更新 UIState、设置矩阵与光照参数并绘制场景。
+*   **View 面板**：
+    *   `Model Transform`：控制主模型的旋转 (Rotate)、缩放 (Scale)。
+    *   `Light`：调整点光源的位置 (Position) 和颜色 (Color)。
+    *   `Outline`：调整描边宽度 (Width)。
+*   **Scene 面板**：
+    *   `Cubes` 列表：显示当前场景中的立方体。
+    *   `Add Cube`：在场景中添加一个新的立方体。
+    *   选中列表中的立方体后，可以调整其 `Position` (位置), `Rotation` (旋转), `Scale` (缩放) 和 `Visible` (可见性)。
 
-## 交互与控件说明
-### 基本操作
-- `P`：开启/关闭 ImGui 控制面板，同时切换鼠标捕获。
-- 鼠标移动：在未暂停输入时控制相机视角（Yaw/Pitch）。
-- `W/S/A/D`：前后左右移动相机。
-- `Space` / `Left Ctrl`：沿世界 Up 方向上升 / 下降。
+## 📝 实现细节 (Implementation Details)
 
-### ImGui 面板（ui_draw）
-- Camera
-  - `Camera Position`：相机世界坐标。
-  - `Yaw` / `Pitch`：相机欧拉角。
-  - `Speed`：相机移动速度。
-  - `FOV`：透视投影视角。
-- Model
-  - `Model Pos` / `Model Rot` / `Model Scale`：控制主模型的平移、旋转与缩放。
-- Light
-  - `Direcional Light Direction`：方向光方向。
-  - `Direcional Light Color`：方向光颜色。
-- Cube
-  - `Cube Pos` / `Cube Rot` / `Cube Scale`：控制立方体在世界空间中的变换。
-  - `Cube Color`：立方体颜色。
-  - `Create Cube` 按钮：开关立方体的显示与渲染。
-- 其他
-  - `outline width`：控制描边膨胀宽度（影响主模型轮廓效果）。
+### 阴影系统
+使用了**全向阴影贴图 (Omnidirectional Shadow Maps)** 技术。
+1.  **深度 Pass**：首先从光源视角向 6 个方向（立方体贴图的 6 个面）渲染场景深度，生成深度立方体贴图 (Depth Cubemap)。
+2.  **渲染 Pass**：在主渲染阶段，计算片元到光源的距离，并与深度贴图中的值进行比较。
+3.  **PCF 优化**：为了解决阴影锯齿，实现了 Percentage-Closer Filtering。在着色器中，沿光线方向及周围随机采样 20 次，取平均值作为阴影因子，从而产生柔和的阴影边缘。
 
-### 关于 Cube 按钮与相机
-- 当按下 `Create Cube` 按钮后，会根据当前 UI 中的尺寸与颜色参数创建一个立方体，并与场景共享同一套 `view`/`projection` 矩阵。
-- 移动相机（鼠标 + 键盘）时，主模型和立方体都会随视角变化正常运动，不会出现模型“贴死在屏幕上”的现象。
+### 描边系统
+使用了**顶点法线外扩**技术。
+1.  在顶点着色器中，判断当前是否处于描边绘制阶段（通过 `vIsOutline` 变量）。
+2.  如果是描边阶段，将顶点沿法线方向向外移动一定距离（由 `outlineWidth` 控制）。
+3.  在片元着色器中，将这些膨胀后的背面渲染为纯黑色，从而在原模型周围形成黑色轮廓。
 
-## 注意
-- 若在同一进程内多次初始化/销毁 GLFW，请确保调用顺序不会破坏已有窗口与上下文。
-- 资源文件（模型、着色器）路径需在 `resource/` 目录下有效。
+### 资源管理
+*   实现了 `Mesh` 和 `Cube` 类的**RAII**（资源获取即初始化）管理。
+*   添加了移动构造函数和析构函数，确保 OpenGL 对象（VAO, VBO, EBO）在对象生命周期结束时自动释放，防止显存泄漏和 ImGui 崩溃。
