@@ -6,33 +6,40 @@ layout(location = 2) in vec2 aTexCoords;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform float outlineWidth; // 鎺ㄨ崘 0.02
+uniform float outlineWidth; // 0.02-0.05
+uniform vec3 viewPos;
 
 out vec3 FragPos;
 out vec3 Normal;
 out vec2 TexCoords;
-out float vIsOutline; // 鑷姩璁＄畻鏍囪
+out float vIsOutline;
 
 void main() {
-    vec3 worldPos = vec3(model * vec4(aPos, 1.0));
-    vec3 worldNormal = normalize(mat3(transpose(inverse(model))) * aNormal);
+    // 计算世界空间位置和法线
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    mat3 normalMatrix = transpose(inverse(mat3(model)));
+    vec3 worldNormal = normalize(normalMatrix * aNormal);
     
-    // 鍋囪鐩告満澶ц嚧浣嶇疆璁＄畻瑙嗙嚎鏂瑰悜
-    vec3 viewDir = normalize(vec3(0.0, 0.0, 5.0) - worldPos); 
-
-    // 鑳岄潰鑶ㄨ儉鍒ゅ畾閫昏緫
+    // 视线方向（世界空间）
+    vec3 viewDir = normalize(viewPos - worldPos.xyz);
+    
+    // 判断是否为背面（膨胀部分）
     float ndotv = dot(worldNormal, viewDir);
-    vec3 pos = aPos;
     
-    if (ndotv < 0.1) { 
-        pos += aNormal * outlineWidth; // 浠呰啫鑳�杈圭紭/鑳岄潰
+    vec4 finalPos = worldPos;
+    vIsOutline = 0.0;
+    
+    if (ndotv > 0.0) {
+        // 只移动背面顶点，方向沿着法线
+        finalPos.xyz += worldNormal * outlineWidth;
         vIsOutline = 1.0;
-    } else {
-        vIsOutline = 0.0;
     }
-
-    FragPos = vec3(model * vec4(pos, 1.0));
+    
+    // 输出到片段着色器
+    FragPos = finalPos.xyz;
     Normal = worldNormal;
     TexCoords = aTexCoords;
-    gl_Position = projection * view * vec4(FragPos, 1.0);
+    
+    // 转换到裁剪空间
+    gl_Position = projection * view * finalPos;
 }

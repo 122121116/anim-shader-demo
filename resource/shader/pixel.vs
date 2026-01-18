@@ -8,21 +8,21 @@ out vec4 FragColor;
 
 uniform sampler2D texture1;
 uniform vec3 lightDir;
-uniform float lightIntensity;
+uniform vec3 lightColor;
 
 void main() {
     if (vIsOutline > 0.5) {
-        FragColor = vec4(0.0, 0.0, 0.0, 1.0); // æè¾¹è®¾ä¸ºé»‘è‰²
+        FragColor = vec4(0.0, 0.0, 0.0, 1.0); // Ãè±ßÉèÎªºÚÉ«
         return;
     }
 
-    vec4 texColor = texture(texture1, TexCoords); // é‡‡æ · texture1
+    vec4 texColor = texture(texture1, TexCoords); // ²ÉÑù texture1
     vec3 norm = normalize(Normal);
     vec3 L = normalize(-lightDir);
     
-    // åŸºç¡€å…‰ç…§æ¨¡å‹ï¼šç¯å¢ƒå…‰ + æ¼«åå°„
+    // »ù´¡¹âÕÕÄ£ĞÍ£º»·¾³¹â + Âş·´Éä
     float diff = max(dot(norm, L), 0.0);
-    vec3 result = (0.2 + diff * lightIntensity) * texColor.rgb;
+    vec3 result = (0.4 + 0.7 * diff) * lightColor * texColor.rgb;
     
     FragColor = vec4(result, texColor.a);
 }
