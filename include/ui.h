@@ -33,8 +33,8 @@ struct UIState {
 
     bool create_cube = false;
     float cube_length = 1.0f;
-    float cube_width = 1.0f;
-    float cube_height = 1.0f;
+    float cube_width = 0.5f;
+    float cube_height = 0.1f;
     glm::vec3 cube_pos = glm::vec3(0.0f, 0.0f, 0.0f);
     float cube_scale = 1.0f;
     glm::vec3 cube_color = glm::vec3(1.0f, 1.0f, 1.0f);

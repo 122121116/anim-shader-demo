@@ -95,35 +95,35 @@ int main()
         lastTime = now;
         ui_update_input(uistate, window, dt);
         ui_compute_matrices(uistate, w, h);
+
+        shader.use();
         GLint locModel = shader.uniform("model");
         GLint locView = shader.uniform("view");
         GLint locProj = shader.uniform("projection");
-        GLint cubeModel = cubeShader.uniform("model");
-        GLint cubeView = cubeShader.uniform("view");
-        GLint cubeProj = cubeShader.uniform("projection");
-
-        if (cubeModel>=0) glUniformMatrix4fv(cubeModel, 1, GL_FALSE, glm::value_ptr(uistate.model));
-        if (cubeView>=0) glUniformMatrix4fv(cubeView, 1, GL_FALSE, glm::value_ptr(uistate.view));
-        if (cubeProj>=0) glUniformMatrix4fv(cubeProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
-        if (locModel>=0) glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(uistate.modelcube));
-        if (locView>=0) glUniformMatrix4fv(locView, 1, GL_FALSE, glm::value_ptr(uistate.view));
-        if (locProj>=0) glUniformMatrix4fv(locProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
+        if (locModel >= 0) glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(uistate.model));
+        if (locView >= 0) glUniformMatrix4fv(locView, 1, GL_FALSE, glm::value_ptr(uistate.view));
+        if (locProj >= 0) glUniformMatrix4fv(locProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
 
         shader.setVec3("viewPos", uistate.view_pos);
         shader.setVec3("lightDir", uistate.light_pos);
         shader.setVec3("lightColor", uistate.light_color);
         shader.setFloat("outlineWidth", uistate.outlinewidth);
-
-        cubeShader.setVec3("lightDir", uistate.light_pos);
-        cubeShader.setVec3("lightColor", uistate.light_color);
-
-        shader.use();
         shader.setInt("texture1", 0);
-        sceneModel.Draw(cubeShader);
-        for (auto& m : extraMeshes) m.Draw(cubeShader);
+
+        sceneModel.Draw(shader);
+        for (auto& m : extraMeshes) m.Draw(shader);
+
         if (uistate.create_cube) {
-            Cube c(uistate.cube_length, uistate.cube_width, uistate.cube_height, uistate.cube_color);
             cubeShader.use();
+            GLint cubeModel = cubeShader.uniform("model");
+            GLint cubeView = cubeShader.uniform("view");
+            GLint cubeProj = cubeShader.uniform("projection");
+            if (cubeModel >= 0) glUniformMatrix4fv(cubeModel, 1, GL_FALSE, glm::value_ptr(uistate.modelcube));
+            if (cubeView >= 0) glUniformMatrix4fv(cubeView, 1, GL_FALSE, glm::value_ptr(uistate.view));
+            if (cubeProj >= 0) glUniformMatrix4fv(cubeProj, 1, GL_FALSE, glm::value_ptr(uistate.projection));
+            cubeShader.setVec3("lightDir", uistate.light_pos);
+            cubeShader.setVec3("lightColor", uistate.light_color);
+            Cube c(uistate.cube_length, uistate.cube_width, uistate.cube_height, uistate.cube_color);
             c.Draw(cubeShader);
         }
 
