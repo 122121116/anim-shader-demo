@@ -6,27 +6,33 @@ layout(location = 2) in vec2 aTexCoords;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-
-// --- 新增：描边控制参数 ---
-uniform bool isOutline;     // 描边开关
-uniform float outlineWidth; // 膨胀宽度
+uniform float outlineWidth; // 推荐 0.02
 
 out vec3 FragPos;
 out vec3 Normal;
 out vec2 TexCoords;
+out float vIsOutline; // 自动计算标记
 
 void main() {
-    vec3 pos = aPos;
+    vec3 worldPos = vec3(model * vec4(aPos, 1.0));
+    vec3 worldNormal = normalize(mat3(transpose(inverse(model))) * aNormal);
+    
+    // 假设相机大致位置计算视线方向
+    vec3 viewDir = normalize(vec3(0.0, 0.0, 5.0) - worldPos); 
 
-    // 【功能实现：背面膨胀法】
-    // 描边阶段将顶点沿法线挤出
-    if (isOutline) {
-        pos += aNormal * outlineWidth;
+    // 背面膨胀判定逻辑
+    float ndotv = dot(worldNormal, viewDir);
+    vec3 pos = aPos;
+    
+    if (ndotv < 0.1) { 
+        pos += aNormal * outlineWidth; // 仅膨胀边缘/背面
+        vIsOutline = 1.0;
+    } else {
+        vIsOutline = 0.0;
     }
 
     FragPos = vec3(model * vec4(pos, 1.0));
-    Normal = mat3(transpose(inverse(model))) * aNormal;
+    Normal = worldNormal;
     TexCoords = aTexCoords;
-    
     gl_Position = projection * view * vec4(FragPos, 1.0);
 }
