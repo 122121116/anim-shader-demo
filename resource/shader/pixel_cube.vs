@@ -38,7 +38,7 @@ void main() {
     // ---------------------------------------------------------
     // 3. 环境光计算
     // ---------------------------------------------------------
-    vec3 ambient = 0.3 * lightColor * objectColor;
+    vec3 ambient = 0.5 * lightColor * objectColor;
 
     // ---------------------------------------------------------
     // 4. 阴影计算 (PCF)
@@ -76,7 +76,7 @@ void main() {
     // ---------------------------------------------------------
     float lighting = diff;
     // 最终颜色 = 环境光 + (1 - 阴影) * 漫反射
-    vec3 result = ambient + 0.7 * (1.0 - shadow) * lighting * lightColor * objectColor;
+    vec3 result = ambient + 0.5 * (1.0 - shadow) * lighting * lightColor * objectColor;
     
     FragColor = vec4(result, 1.0);
 }

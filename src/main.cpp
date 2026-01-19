@@ -95,7 +95,7 @@ int main()
     }
 
     // 加载模型
-    Model sceneModel("resource/model/mi.glb");
+    Model sceneModel("resource/model/ark.glb");
 
     // 初始化 UI 状态和光源
     UIState uistate;

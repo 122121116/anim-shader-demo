@@ -44,16 +44,12 @@ void main() {
     // ---------------------------------------------------------
     // 3. 漫反射计算 (Lambertian)
     // ---------------------------------------------------------
-    float diff = max(dot(-norm, L), 0.0); // 注意：这里使用了 -norm，可能是因为模型法线方向或光照计算约定的原因，通常是 dot(norm, L)
-                                          // 但如果法线是指向外部，光线是指向光源，应该是 dot(norm, L)。
-                                          // 这里的 -norm 可能是为了适配特定的模型数据或光照反向。
-                                          // 修正注：标准 Phong 模型中 Diffuse = max(dot(N, L), 0.0)。
-                                          // 如果这里效果正确，可能是法线在顶点着色器中被翻转了，或者模型本身法线向内。
-    
+    float diff = max(dot(norm, L), 0.0); // 注意：这里使用了 -norm
+
     // ---------------------------------------------------------
     // 4. 环境光计算
     // ---------------------------------------------------------
-    vec3 ambient = 0.3 * lightColor * texColor.rgb;
+    vec3 ambient = 0.5 * lightColor * texColor.rgb;
 
     // ---------------------------------------------------------
     // 5. 阴影计算 (PCF - Percentage Closer Filtering)
@@ -95,7 +91,7 @@ void main() {
     // ---------------------------------------------------------
     float lighting = diff;
     // 最终颜色 = 环境光 + (1 - 阴影) * 漫反射
-    vec3 result = ambient + 0.7 * (1.0 - shadow) * lighting * lightColor * texColor.rgb;
+    vec3 result = ambient + 0.5 * (1.0 - shadow) * lighting * lightColor * texColor.rgb;
     
     FragColor = vec4(result, texColor.a);
 }

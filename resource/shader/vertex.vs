@@ -27,20 +27,16 @@ void main() {
     // 2. 计算视线方向（世界空间）
     vec3 viewDir = normalize(viewPos - worldPos.xyz);
     
-    // 3. 简单的描边逻辑：顶点沿法线膨胀
+    // 3. 顶点沿法线膨胀
     // 计算视线与法线的点积
-    // ndotv > 0 表示面朝向观察者（正面），ndotv < 0 表示背向观察者（背面）
-    // 注意：这里使用的是简单的背面剔除思想的变体来做描边
-    // 实际上通常的做法是绘制两遍：第一遍正常绘制，第二遍剔除正面并沿法线膨胀绘制背面作为描边
-    // 这个着色器尝试在一个 Pass 中做一些处理（通过 vIsOutline 标记）
     float ndotv = dot(worldNormal, viewDir);
     
     vec4 finalPos = worldPos;
     vIsOutline = 0.0;
     
-    // 如果法线朝向观察者（这里逻辑可能与常规描边相反，取决于具体需求）
+    // 如果法线朝向观察者
     // 通常描边是在背面顶点上进行的
-    if (ndotv > 0.0) {
+    if (ndotv < 0.0) {
         // 沿法线方向挤出顶点位置
         finalPos.xyz += worldNormal * outlineWidth;
         vIsOutline = 1.0;

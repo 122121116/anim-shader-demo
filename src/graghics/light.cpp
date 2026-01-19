@@ -73,9 +73,6 @@ void Light::setupShadowCube(int size, float nearPlane, float farPlane) {
     glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap_, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
-    
-    // 检查 FBO 完整性（实际项目中建议检查）
-    // if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) ...
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
