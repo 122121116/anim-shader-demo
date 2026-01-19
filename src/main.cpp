@@ -18,14 +18,17 @@
 
 int main()
 {
-
+    // 初始化 GLFW
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
+    // 配置 GLFW 上下文版本 (OpenGL 3.3 Core Profile)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    
+    // 创建窗口
     GLFWwindow* window = glfwCreateWindow(1280, 720, "Model Example", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
@@ -33,17 +36,23 @@ int main()
         return -1;
     }
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    glfwSwapInterval(1); // 开启垂直同步
+
+    // 初始化 GLAD (加载 OpenGL 函数指针)
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD" << std::endl;
         glfwDestroyWindow(window);
         glfwTerminate();
         return -1;
     }
+    
+    // 开启深度测试
     glEnable(GL_DEPTH_TEST);
 
+    // 设置清屏颜色
     glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 
+    // 初始化 ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -60,9 +69,12 @@ int main()
         glfwTerminate();
         return -1;
     }
-    Shader shader;
-    Shader cubeShader;
-    Shader depthShader;
+
+    // 编译着色器
+    Shader shader;      // 主场景着色器
+    Shader cubeShader;  // 立方体着色器
+    Shader depthShader; // 阴影深度图着色器
+    
     if (!shader.compileFromFiles("resource/shader/vertex.vs", "resource/shader/pixel.vs")) {
         std::cerr << "Shader error: " << shader.error() << std::endl;
         glfwDestroyWindow(window);
@@ -82,15 +94,18 @@ int main()
         return -1;
     }
 
+    // 加载模型
     Model sceneModel("resource/model/mi.glb");
 
+    // 初始化 UI 状态和光源
     UIState uistate;
     Light light;
 
     int init_w = 0, init_h = 0;
     glfwGetFramebufferSize(window, &init_w, &init_h);
     ui_init(uistate, init_w, init_h);
-    light.setupShadowCube(2048, 1.0f, 50.0f);
+    light.setupShadowCube(2048, 1.0f, 50.0f); // 设置阴影分辨率和裁剪平面
+    
     // 预创建一个单位立方体，用于后续复用渲染
     // 颜色参数这里给默认值，实际渲染时通过 uniform objectColor 控制
     Cube unitCube(1.0f, 1.0f, 1.0f, glm::vec3(1.0f));
@@ -98,25 +113,35 @@ int main()
     std::vector<Mesh> extraMeshes;
     double lastTime = glfwGetTime();
 
+    // 渲染循环
     while (!glfwWindowShouldClose(window)) {
+        // 处理窗口事件
         glfwPollEvents();
 
         int w=0,h=0;
         glfwGetFramebufferSize(window, &w, &h);
 
+        // 计算时间增量
         double now = glfwGetTime();
         float dt = float(now - lastTime);
         lastTime = now;
+        
+        // 更新 UI 输入和矩阵
         ui_update_input(uistate, window, dt);
         ui_compute_matrices(uistate, w, h);
 
         light.setPoint(uistate.light_pos, uistate.light_color);
 
+        // ---------------------------------------------------------
+        // Pass 1: 阴影贴图生成 (Depth Pass)
+        // ---------------------------------------------------------
         float nearPlane = 1.0f;
         float farPlane = light.farPlane();
         glm::vec3 lightPos = light.position();
         float aspect = 1.0f;
         glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, nearPlane, farPlane);
+        
+        // 生成立方体贴图 6 个面的视图矩阵
         glm::mat4 shadowTransforms[6];
         shadowTransforms[0] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
         shadowTransforms[1] = shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
@@ -130,14 +155,19 @@ int main()
         depthShader.setFloat("farPlane", farPlane);
 
         light.beginDepthPass();
+        // 渲染场景到深度立方体贴图的 6 个面
         for (int face = 0; face < 6; ++face) {
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, light.depthCubeTexture(), 0);
             glClear(GL_DEPTH_BUFFER_BIT);
 
             depthShader.setMat4("lightSpaceMatrix", shadowTransforms[face]);
             depthShader.setMat4("model", uistate.model);
+            
+            // 绘制主模型
             sceneModel.Draw(depthShader);
             for (auto& m : extraMeshes) m.Draw(depthShader);
+            
+            // 绘制动态添加的立方体
             if (!uistate.cubes.empty()) {
                 for (const auto& cfg : uistate.cubes) {
                     if (!cfg.visible) continue;
@@ -158,10 +188,14 @@ int main()
         }
         light.endDepthPass();
 
+        // ---------------------------------------------------------
+        // Pass 2: 正常场景渲染 (Lighting Pass)
+        // ---------------------------------------------------------
         glViewport(0, 0, w, h);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.use();
+        // 设置 Uniforms
         GLint locModel = shader.uniform("model");
         GLint locView = shader.uniform("view");
         GLint locProj = shader.uniform("projection");
@@ -177,12 +211,15 @@ int main()
         shader.setInt("shadowMap", 1);
         shader.setFloat("farPlane", farPlane);
 
+        // 绑定阴影贴图
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_CUBE_MAP, light.depthCubeTexture());
 
+        // 绘制主模型
         sceneModel.Draw(shader);
         for (auto& m : extraMeshes) m.Draw(shader);
 
+        // 绘制动态添加的立方体
         if (!uistate.cubes.empty()) {
             cubeShader.use();
             GLint cubeModel = cubeShader.uniform("model");
@@ -220,7 +257,9 @@ int main()
         // 显式解绑 VAO，避免干扰 ImGui
         glBindVertexArray(0);
 
-        // 开始 UI 帧
+        // ---------------------------------------------------------
+        // UI 渲染
+        // ---------------------------------------------------------
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -232,12 +271,16 @@ int main()
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+        // 交换缓冲区
         glfwSwapBuffers(window);
     }
+    
+    // 清理 ImGui 资源
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
+    // 清理 GLFW 资源
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;

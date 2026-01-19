@@ -99,7 +99,7 @@ root/
 
 ## 🎮 操作说明 (Controls)
 
-程序启动后，你会看到主渲染窗口和 ImGui 控制面板。
+程序启动后，你会看到主渲染窗口和 ImGui 控制面板。按P键可以暂停画面。
 
 *   **View 面板**：
     *   `Model Transform`：控制主模型的旋转 (Rotate)、缩放 (Scale)。
